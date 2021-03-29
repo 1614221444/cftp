@@ -1,0 +1,16 @@
+# 代理服务器配置
+# host
+server-host: 0.0.0.0
+
+# 代理服务器数据传输port
+server-port: 9879
+# user
+user:
+  - key: 1234
+  - key: 4567
+  - key: 2345
+  - key: 12342
+  - key: 2134321
+# path: C:\Users\Administrator\Desktop\data
+
+path: /Users/wuyh/Desktop/FTP/C

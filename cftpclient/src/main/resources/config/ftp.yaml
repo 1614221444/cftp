@@ -1,0 +1,16 @@
+# 代理服务器配置
+# 本地端口
+data-port: 6666
+data-local-port: 6565
+
+# host
+#server-host: 39.98.196.107
+server-host: 0.0.0.0
+# 本地服务器host
+local-host: 127.0.0.1
+# 代理服务器数据传输port
+server-port: 9879
+# user
+client-key: 1234
+
+path: /Users/wuyh/Desktop/FTP/C
