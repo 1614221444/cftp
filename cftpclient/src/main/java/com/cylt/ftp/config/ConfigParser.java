@@ -20,11 +20,9 @@ public class ConfigParser {
             //打包到服务器
             //File file = getServerConfigFile();
             InputStream in = new FileInputStream(file);
-
             Yaml yaml = new Yaml();
             config = (Map<String,Object>) yaml.load(in);
-
-            user = (ArrayList<Map<String, Object>>) config.get(user);
+            user = (ArrayList<Map<String, Object>>) get("user");
         }catch (Exception e){
             e.printStackTrace();
         }
@@ -35,17 +33,28 @@ public class ConfigParser {
      * @return
      */
     public File getProjectConfigFile() {
-        return new File("src/main/resources/config/ftp.yaml");
+        File file = new File("src/main/resources/config/ftp.yaml");
+        if(file.isFile()) {
+            return file;
+        } else {
+            return new File(getServerConfigFile() + "ftp.yaml");
+        }
     }
 
     /**
      * 打包后读配置
      */
-    public File getServerConfigFile()
-    {
-        String classPath = this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
-        classPath = classPath.substring(5,classPath.indexOf("cftpserver.jar"))+"ftp.yaml";
-        return new File(classPath);
+    public static String getServerConfigFile(){
+
+        String filePath = System.getProperty("java.class.path");
+        String pathSplit = System.getProperty("path.separator");//windows下是";",linux下是":"
+
+        if(filePath.contains(pathSplit)){
+            filePath = filePath.substring(0,filePath.indexOf(pathSplit));
+        }else if (filePath.endsWith(".jar")) {//截取路径中的jar包名,可执行jar包运行的结果里包含".jar"
+            filePath = filePath.substring(0, filePath.lastIndexOf(File.separator) + 1);
+        }
+        return filePath;
     }
 
     public static Object get(String key){

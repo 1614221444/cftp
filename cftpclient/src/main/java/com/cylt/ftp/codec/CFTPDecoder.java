@@ -21,23 +21,26 @@ public class CFTPDecoder extends MessageToMessageDecoder<ByteBuf> {
 
     @Override
     protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> list) {
+        try {
+            int type = byteBuf.readInt();
+            int metaDataLength = byteBuf.readInt();
+            CharSequence metaDataString = byteBuf.readCharSequence(metaDataLength, CharsetUtil.UTF_8);
+            Map<String, Object> metaData = JSON.parseObject(metaDataString.toString(), HashMap.class);
 
-        int type = byteBuf.readInt();
-        int metaDataLength = byteBuf.readInt();
-        CharSequence metaDataString = byteBuf.readCharSequence(metaDataLength, CharsetUtil.UTF_8);
-        Map<String, Object> metaData = JSON.parseObject(metaDataString.toString(), HashMap.class);
+            byte[] data = null;
+            if (byteBuf.isReadable()) {
+                data = ByteBufUtil.getBytes(byteBuf);
+            }
 
-        byte[] data = null;
-        if (byteBuf.isReadable()) {
-            data = ByteBufUtil.getBytes(byteBuf);
+            CFTPMessage ftp = new CFTPMessage();
+            ftp.setType(type);
+            ftp.setMetaData(metaData);
+            ftp.setDataHead(new DataHead(metaData));
+            ftp.setData(data);
+
+            list.add(ftp);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
-
-        CFTPMessage ftp = new CFTPMessage();
-        ftp.setType(type);
-        ftp.setMetaData(metaData);
-        ftp.setDataHead(new DataHead(metaData));
-        ftp.setData(data);
-
-        list.add(ftp);
     }
 }

@@ -3,6 +3,7 @@ package com.cylt.ftp.test;
 import com.cylt.ftp.App;
 import com.cylt.ftp.config.ConfigParser;
 import com.cylt.ftp.handler.ClientHandler;
+import com.cylt.ftp.handler.LocalHandler;
 import com.cylt.ftp.protocol.CFTPMessage;
 import com.cylt.ftp.protocol.DataHead;
 
@@ -16,12 +17,35 @@ import java.util.UUID;
 
 public class Send extends Thread {
 
+	/**
+	 * 文件路径
+	 */
+	private String files;
+
+	/**
+	 * 当前传输
+	 */
+	private String id;
+
+	/**
+	 * 当前传输索引
+	 */
+	private int i;
+
+	public Send(String files) {
+		this(UUID.randomUUID().toString(), files, 0);
+	}
+	public Send(String id, String files, int i) {
+		this.files = files;
+		this.id = id;
+		this.i = i;
+	}
+
 	@Override
 	public void run() {
 		CFTPMessage HEART_BEAT;
 		DataHead dataHead;
-		String file = "/Users/wuyh/work/资源/安装包/jre-8u202-windows-x64.exe";
-		String files = "/Users/wuyh/Desktop/FTP/A/b.text";
+		// String files = ConfigParser.getServerConfigFile() + "A.text";
 		try (FileInputStream in = new FileInputStream(files)) {
 			// 创建文件流通道
 			FileChannel inChannel = in.getChannel();
@@ -35,10 +59,7 @@ public class Send extends Thread {
 			long total  = (fileSize / readMax) + 1;
 			// 初始化请求头
 			HashMap<String, Object> metaData;
-			int i = 0;
 			Date start = new Date();
-			String id = UUID.randomUUID().toString();
-
 			HEART_BEAT = new CFTPMessage(CFTPMessage.TYPE_DATA);
 			metaData = new HashMap<>();
 			metaData.put("clientKey", ConfigParser.get("client-key"));
@@ -50,6 +71,9 @@ public class Send extends Thread {
 			metaData.put("startDate", start);
 			HEART_BEAT.setMetaData(metaData);
 			App.ser.channel.writeAndFlush(HEART_BEAT);
+
+			LocalHandler localHandler = new LocalHandler(HEART_BEAT, true, i);
+			ClientHandler.localHandlerMap.put(id, localHandler);
 //			while (i < total) {
 //				i++;
 //				buffer.clear();

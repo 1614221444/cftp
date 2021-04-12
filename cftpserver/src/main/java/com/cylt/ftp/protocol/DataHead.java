@@ -30,6 +30,10 @@ public class DataHead {
     public static final int READY_COMPLETE = 8;
     //补发
     public static final int SEND = 9;
+    //接收完成
+    public static final int RECEIVE_END = 10;
+    //补发确认
+    public static final int REISSUE = 11;
 
     public DataHead() {
     }
@@ -40,6 +44,7 @@ public class DataHead {
         setFileSize((int) (map.get("fileSize") == null ? 0 : map.get("fileSize")));
         setUrl((String) map.get("url"));
         setId((String) map.get("id"));
+        setTotal((int) (map.get("total") == null ? 0 : map.get("total")));
         setFileName((String) map.get("fileName"));
     }
 

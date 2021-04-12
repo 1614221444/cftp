@@ -28,7 +28,7 @@ public class App {
     public static final int INITIAL_BYTES_TO_STRIP = 4;
 
     // 用户事件隔多少秒
-    private static final int READER_IDLE_TIME = 360;
+    private static final int READER_IDLE_TIME = 30;
     private static final int WRITER_IDLE_TIME = 0;
     private static final int ALL_IDLE_TIME = 0;
 

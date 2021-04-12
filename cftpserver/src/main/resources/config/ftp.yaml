@@ -4,6 +4,9 @@ server-host: 0.0.0.0
 
 # 代理服务器数据传输port
 server-port: 9879
+
+data-min-port: 10000
+data-max-port: 11000
 # user
 user:
   - key: 1234

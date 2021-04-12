@@ -32,7 +32,7 @@ public class App {
     public static final int INITIAL_BYTES_TO_STRIP = 4;
 
     // 用户事件隔多少秒
-    private static final int READER_IDLE_TIME = 240;
+    private static final int READER_IDLE_TIME = 20;
     private static final int WRITER_IDLE_TIME = 0;
     private static final int ALL_IDLE_TIME = 0;
 
@@ -67,9 +67,9 @@ public class App {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                Send send = new Send();
+                Send send = new Send("/Users/wuyh/Desktop/FTP/A/b.text");
                 send.run();
             }
-        }, 5000, 1500000);
+        }, 5000);
     }
 }

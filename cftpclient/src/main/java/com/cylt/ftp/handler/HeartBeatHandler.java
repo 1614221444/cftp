@@ -40,7 +40,6 @@ public class HeartBeatHandler extends ChannelInboundHandlerAdapter {
         map.put("clientKey","test1");
         HEART_BEAT.setMetaData(map);
         HEART_BEAT.setData(new byte[55]);
-        System.out.println(this.getClass()+"\r\n 写超时，发送心跳");
         ctx.writeAndFlush(HEART_BEAT);
     }
 

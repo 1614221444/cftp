@@ -7,6 +7,7 @@ import com.cylt.ftp.codec.CFTPEncoder;
 import com.cylt.ftp.config.ConfigParser;
 import com.cylt.ftp.protocol.CFTPMessage;
 import com.cylt.ftp.protocol.DataHead;
+import com.cylt.ftp.test.Send;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
@@ -16,6 +17,8 @@ import io.netty.util.concurrent.GlobalEventExecutor;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -36,7 +39,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     //所有localChannel共享，减少线程上下文切换
     private EventLoopGroup localGroup = new NioEventLoopGroup();
     //每个外部请求channelId与其处理器handler的映射关系
-    private ConcurrentHashMap<String, LocalHandler> localHandlerMap = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<String, LocalHandler> localHandlerMap = new ConcurrentHashMap<>();
 
     private ChannelHandlerContext ctx = null;
 
@@ -45,7 +48,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     }
 
 
-    public static Client localHelper = new Client();
+    private static Map<String, Client> localHelperMap = new HashMap<>();
 
     //连接建立，初始化
     @Override
@@ -62,7 +65,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
         metaData.put("ports", serverPortArr);
         message.setMetaData(metaData);
         ctx.writeAndFlush(message);
-        System.out.println(this.getClass() + "\r\n 与服务器连接建立成功，正在进行注册...");
+        System.out.println("与服务器连接建立成功，正在进行注册...");
     }
 
     //读取数据
@@ -134,12 +137,15 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
      * @Param [message]
      **/
     public void processConnected(CFTPMessage message) {
-        ClientHandler clientHandler = this;
-        message.getDataHead().setType(DataHead.READY_COMPLETE);
         ChannelInitializer channelInitializer = new ChannelInitializer() {
             @Override
             protected void initChannel(Channel channel) throws Exception {
-                LocalHandler localHandler = new LocalHandler(clientHandler, message);
+
+                LocalHandler localHandler = localHandlerMap.get(message.getDataHead().getId());
+                // 判断有没有创建处理器实例 如果创建了说明是当前端发送的请求 (需要发送文件端)
+                if(localHandler == null){
+                    localHandler = new LocalHandler(message, false);
+                }
                 channel.pipeline().addLast(
                         //固定帧长解码器ClientHandler
                         new LengthFieldBasedFrameDecoder(App.MAX_FRAME_LENGTH, App.LENGTH_FIELD_OFFSET, App.LENGTH_FIELD_LENGTH, App.LENGTH_ADJUSTMENT, App.INITIAL_BYTES_TO_STRIP),
@@ -150,15 +156,15 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
                         localHandler
                 );
                 channels.add(channel);
-                localHandlerMap.put(message.getDataHead().getId(), localHandler);
             }
         };
         String server = (String) ConfigParser.get("server-host");
         //这里根据portMap将远程服务器端口作为key获取对应的本地端口
         int remotePort = (Integer) message.getMetaData().get("remotePort");
-        int localPort = (Integer) ConfigParser.get("data-local-port");
+        Client localHelper = new Client();
         localHelper.start(localGroup, channelInitializer, server, remotePort);
-        System.out.println(this.getClass() + "\r\n 服务器" + remotePort + "端口进入连接，正在向本地" + localPort + "端口建立连接");
+        localHelperMap.put(message.getDataHead().getId(), localHelper);
+        System.out.println("服务器" + remotePort + "端口进入连接，正在向本地端口建立连接, 数据id：" + message.getDataHead().getId());
     }
 
     /**
@@ -183,7 +189,27 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
      * @Param [message]
      **/
     public void processData(CFTPMessage message) {
-        processConnected(message);
+        switch (message.getDataHead().getType()) {
+            // 准备连接
+            case DataHead.READY_COMPLETE:
+                processConnected(message);
+                break;
+            // 外部请求进入，开始与内网建立连接
+            case DataHead.RECEIVE_END:
+                String key = message.getDataHead().getId();
+                System.out.println("数据传输完成 通道已关闭 数据通道id：" + key);
+                localHelperMap.get(key).close();
+                localHelperMap.remove(key);
+                break;
+            // 补发数据确认
+            case DataHead.REISSUE:
+                //这里没有确认动作 自动补发
+                System.out.println("数据补发 通道开启 数据通道id：" + message.getMetaData().get("id")
+                        + "\n补发初始化上传进度：" + message.getMetaData().get("index"));
+                Send send = new Send((String) message.getMetaData().get("id"),
+                        (String) message.getMetaData().get("url"),(int) message.getMetaData().get("index"));
+                send.run();
+        }
     }
 
 }

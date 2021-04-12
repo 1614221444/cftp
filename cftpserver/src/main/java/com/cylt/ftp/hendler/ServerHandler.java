@@ -6,6 +6,7 @@ import com.cylt.ftp.codec.CFTPDecoder;
 import com.cylt.ftp.codec.CFTPEncoder;
 import com.cylt.ftp.config.ConfigParser;
 import com.cylt.ftp.protocol.CFTPMessage;
+import com.cylt.ftp.protocol.DataHead;
 import com.cylt.ftp.server.Server;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
@@ -13,10 +14,18 @@ import io.netty.channel.group.ChannelMatcher;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 处理服务器接收到的客户端连接
@@ -28,17 +37,17 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
     //统一管理客户端channel和remote channel
     private static ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
+    //记录客户端与数据端口关系(发送中的数据)
+    public static Map<String, List<CFTPMessage>> clientDataIds = new HashMap<>();
 
-    //所有remote channel共享的线程池，减少线程创建
     //bossGroup指的是所有指定端口的监听处理线程
     //workerGroup指的是所有端口所收到连接的处理线程
-    private EventLoopGroup bossGroup = new NioEventLoopGroup();
-    private EventLoopGroup workerGroup = new NioEventLoopGroup();
-
+    private Map<String, EventLoopGroup> bossGroup = new HashMap<>();
+    private Map<String, EventLoopGroup> workerGroup = new HashMap<>();
     private Server remoteHelper = new Server();
 
     //客户端标识clientKey
-    private String clientKey;
+    public String clientKey;
     //代理客户端的ChannelHandlerContext
     private ChannelHandlerContext ctx;
     //判断代理客户端是否已注册授权
@@ -48,10 +57,17 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         return ctx;
     }
 
+    public ChannelGroup getChannels() {
+        return channels;
+    }
+    public Map<String, Integer> getClients() {
+        return clients;
+    }
+
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
         this.ctx = ctx;
-        System.out.println(this.getClass() + "\r\n 有客户端建立连接，客户端地址为：" + ctx.channel().remoteAddress());
+        System.out.println("有客户端建立连接，客户端地址为：" + ctx.channel().remoteAddress());
     }
 
     //数据读取与转发
@@ -73,7 +89,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                     break;
                 //处理数据
                 case CFTPMessage.TYPE_DATA:
-                    processData(message);
+                    processData(ctx,message, false);
                     break;
                 default:
                     System.out.printf("非法请求");
@@ -88,21 +104,29 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         channels.remove(ctx.channel());
-        ctx.channel().close();
         //移除断开客户端的授权码
         clients.remove(clientKey);
         //取消正在监听的端口，否则第二次连接时无法再次绑定端口
-        bossGroup.shutdownGracefully();
-        workerGroup.shutdownGracefully();
+        ctx.channel().close();
+        if (clientDataIds.get(clientKey)!= null) {
+            clientDataIds.get(clientKey).forEach(
+                    (message) ->  dataPortClose(message.getDataHead().getId())
+            );
+        }
         System.out.println(this.getClass() + "\r\n 客户端连接中断：" + ctx.channel().remoteAddress());
     }
 
     //连接异常处理
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        //取消正在监听的端口，否则第二次连接时无法再次绑定端口
         ctx.channel().close();
-        bossGroup.shutdownGracefully();
-        workerGroup.shutdownGracefully();
+        if (clientDataIds.get(clientKey)!= null) {
+            clientDataIds.get(clientKey).forEach(
+                    (message) -> dataPortClose(message.getDataHead().getId())
+
+            );
+        }
         System.out.println(this.getClass() + "\r\n 连接异常，已中断");
         cause.printStackTrace();
     }
@@ -157,11 +181,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         //客户端合法性判断
         if (isLegal(clientKey)) {
             //指定服务器需要开启的对外访问端口
-            Object[] ports = ((JSONArray) message.getMetaData().get("ports")).toArray();
             try {
-                for (Object port : ports) {
-                    metaData.put("remotePort", port);
-                }
                 metaData.put("channelId", "123456789");
                 metaData.put("isSuccess", true);
                 clients.put(clientKey, 1);
@@ -184,6 +204,10 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         res.setType(CFTPMessage.TYPE_AUTH);
         res.setMetaData(metaData);
         ctx.writeAndFlush(res);
+
+        if ((boolean) metaData.get("isSuccess")){
+            checkDataWreckage();
+        }
     }
 
     /**
@@ -206,19 +230,25 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
      * @Description 处理客户端发送的数据
      * @Param [message]
      **/
-    public void processData(CFTPMessage message) {
+    public synchronized void processData(ChannelHandlerContext ctx,CFTPMessage message,boolean isSend) {
         if (!isExist(message.getMetaData().get("clientKey").toString())
         ) {
             return;
         }
         // 创建文件传输端口
         ServerHandler serverHandler = this;
-        int port = 6565;
+        //初始化线程组
+        EventLoopGroup boss = new NioEventLoopGroup();
+        EventLoopGroup worker = new NioEventLoopGroup();
+
+        int port = getPort();
         ChannelInitializer channelInitializer = new ChannelInitializer() {
             @Override
             protected void initChannel(Channel channel) {
-                RemoteHandler remoteHandler = new RemoteHandler(serverHandler, port, message);
+                RemoteHandler remoteHandler = new RemoteHandler(serverHandler, port, message, isSend, 0);
                 channel.pipeline().addLast(
+                        //每隔五秒传递数据进度
+                        new IdleStateHandler(5,0,0, TimeUnit.SECONDS),
                         //固定帧长解码器
                         new LengthFieldBasedFrameDecoder(App.MAX_FRAME_LENGTH, App.LENGTH_FIELD_OFFSET, App.LENGTH_FIELD_LENGTH, App.LENGTH_ADJUSTMENT, App.INITIAL_BYTES_TO_STRIP),
                         //自定义协议解码器
@@ -232,12 +262,74 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
             }
         };
-        remoteHelper.start(bossGroup, workerGroup, (String) ConfigParser.get("server-host"), port, channelInitializer);
+        remoteHelper.start(boss, worker, (String) ConfigParser.get("server-host"), port, channelInitializer);
+        bossGroup.put(message.getDataHead().getId(),boss);
+        workerGroup.put(message.getDataHead().getId(),worker);
+
+        //记录客户端与数据端口的关系
+        List<CFTPMessage> messages = clientDataIds.get(clientKey);
+        if(messages == null){
+            messages = new ArrayList<>();
+        }
+        messages.add(message);
+        clientDataIds.put(clientKey, messages);
         Map<String, Object> map = message.getMetaData();
+        message.getDataHead().setType(DataHead.READY_COMPLETE);
         map.put("remotePort", port);
         message.setMetaData(map);
         ctx.writeAndFlush(message);
         System.out.println("数据端口 " + port + " 创建成功 ，等待连接");
     }
 
+    /**
+     * 关闭数据通道
+     * @param id 通道id
+     */
+    public  void dataPortClose(String id){
+        //取消正在监听的端口，否则第二次连接时无法再次绑定端口
+        if (bossGroup.get(id) != null) {
+            bossGroup.get(id).shutdownGracefully();
+            workerGroup.get(id).shutdownGracefully();
+        }
+    }
+
+    /**
+     * 检查未传输结束的数据
+     */
+    private void checkDataWreckage(){
+        List<CFTPMessage> messageList = clientDataIds.get(this.clientKey);
+        if (messageList != null && messageList.size() != 0){
+            for (CFTPMessage message : messageList){
+                message.getDataHead().setType(DataHead.REISSUE);
+                ctx.writeAndFlush(message);
+            }
+            messageList.clear();
+        }
+    }
+
+
+    private synchronized int getPort() {
+        Socket Skt;
+        String host = (String) ConfigParser.get("server-host");
+        int i  = (Integer) ConfigParser.get("data-min-port");
+        int max  = (Integer) ConfigParser.get("data-max-port");
+        for (; i < max; i++) {
+            try {
+                Skt = new Socket(host, i);
+            }
+            catch (UnknownHostException e) {
+                System.out.println("Exception occured"+ e);
+                break;
+            }
+            catch (IOException e) {
+                return i;
+            }
+        }
+        try {
+            Thread.sleep(1000);
+        } catch(InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
+        return getPort();
+    }
 }

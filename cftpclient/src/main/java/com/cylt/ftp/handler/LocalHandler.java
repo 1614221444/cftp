@@ -1,11 +1,13 @@
 package com.cylt.ftp.handler;
 
+import com.cylt.ftp.App;
 import com.cylt.ftp.config.ConfigParser;
 import com.cylt.ftp.protocol.CFTPMessage;
 import com.cylt.ftp.protocol.DataHead;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
+import java.awt.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -23,13 +25,19 @@ import java.util.HashMap;
 
 public class LocalHandler extends ChannelInboundHandlerAdapter {
 
-    private ClientHandler clientHandler = null;
     private CFTPMessage message = null;
     private ChannelHandlerContext localCtx;
 
-    public LocalHandler(ClientHandler clientHandler, CFTPMessage msg) {
-        this.clientHandler = clientHandler;
+    private boolean isSend;
+    private int i = 0;
+
+    public LocalHandler(CFTPMessage msg, boolean isSend) {
+        this(msg,isSend,0);
+    }
+    public LocalHandler(CFTPMessage msg, boolean isSend, int i) {
         this.message = msg;
+        this.isSend = isSend;
+        this.i = i;
     }
 
     public ChannelHandlerContext getLocalCtx() {
@@ -40,31 +48,32 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelActive(ChannelHandlerContext ctx) {
         this.localCtx = ctx;
-        System.out.println(this.getClass()+"\r\n 与本地端口建立连接成功："+ctx.channel().remoteAddress());
-        System.out.println("开始发送");
-        send(ctx, message);
+        if (isSend) {
+            // 准备发送
+            send(ctx, message);
+        } else {//准备接收
+            readyReceive(message);
+        }
     }
 
     //读取内网服务器请求和数据
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         CFTPMessage cftpMessage = (CFTPMessage) msg;
-        switch (cftpMessage.getType()){
+        switch (cftpMessage.getType()) {
             // 准备接收
-            case DataHead.READY_RECEIVE :
+            case DataHead.READY_RECEIVE:
                 readyReceive(cftpMessage);
                 break;
             // 准备完成
-            case DataHead.READY_COMPLETE :
-                send(ctx,cftpMessage);
+            case DataHead.READY_COMPLETE:
+                send(ctx, cftpMessage);
                 break;
             // 数据
-            case DataHead.SEND :
+            case DataHead.SEND:
                 receive(cftpMessage.getDataHead());
                 break;
         }
-        System.out.println("收到本地"+ctx.channel().remoteAddress()+"的数据，" +
-                "数据量为"+cftpMessage.getDataHead().getData().length+"字节");
     }
 
     //连接断开
@@ -72,18 +81,18 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
     public void channelInactive(ChannelHandlerContext ctx) {
         CFTPMessage message = new CFTPMessage();
         message.setType(CFTPMessage.TYPE_DISCONNECTED);
-        HashMap<String,Object> metaData = new HashMap<>();
+        HashMap<String, Object> metaData = new HashMap<>();
         metaData.put("channelId", ctx.channel().id().asLongText());
         message.setMetaData(metaData);
-        this.clientHandler.getCtx().writeAndFlush(message);
-        System.out.println(this.getClass()+"\r\n 与本地连接断开："+ctx.channel().remoteAddress());
+        App.ser.channel.writeAndFlush(message);
+        System.out.println(this.getClass() + "\r\n 与本地连接断开：" + ctx.channel().remoteAddress());
     }
 
     //连接异常
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         ctx.channel().close();
-        System.out.println(this.getClass()+"\r\n 连接中断");
+        System.out.println(this.getClass() + "\r\n 连接中断");
         cause.printStackTrace();
     }
 
@@ -91,31 +100,37 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
     private void send(ChannelHandlerContext ctx, CFTPMessage message) {
 
         DataHead dataHead;
-        String files = "/Users/wuyh/Desktop/FTP/A/b.text";
-        try (FileInputStream in = new FileInputStream(files)) {
-            // 创建文件流通道
-            FileChannel inChannel = in.getChannel();
+        try (FileInputStream in = new FileInputStream((String) this.message.getMetaData().get("url"))) {
             // 单次读最大数据（字节）
             int readMax = 20480;
+            // 创建文件流通道
+            FileChannel inChannel = in.getChannel().position(i * readMax);
             // 取文件质量
             long fileSize = inChannel.size();
             // 创建字节接收区
             ByteBuffer buffer = ByteBuffer.allocate(readMax);
             // 读取次数
-            long total  = (fileSize / readMax) + 1;
-            int i = 0;
+            long total = (fileSize / readMax) + 1;
+            message.setDataHead(new DataHead());
             message.getDataHead().setType(DataHead.SEND);
             while (i < total) {
+//                try {
+//                    Robot r = new Robot();
+//                    r.delay(1000);
+//                }catch (AWTException s){
+//
+//                }
+
                 i++;
-                if(i == total) {
+                if (i == total) {
                     buffer = ByteBuffer.allocate((int) fileSize % readMax);
                 }
+                System.out.println(i);
                 inChannel.read(buffer);
                 buffer.flip();
                 dataHead = message.getDataHead();
                 dataHead.setIndex(i);
                 message.setData(buffer.array());
-                System.out.println(i);
                 message.setDataHead(dataHead);
                 ctx.writeAndFlush(message);
                 buffer.clear();
@@ -123,10 +138,12 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
         } catch (IOException e) {
             System.out.println(e.toString());
         }
+        System.out.println("发送完成");
     }
 
     /**
      * 接收
+     *
      * @param message
      */
     private void receive(DataHead message) {
