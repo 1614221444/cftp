@@ -23,17 +23,24 @@ public class DataHead {
     //消息内容
     private byte[] data;
 
+    //发送&接收
+    private boolean isSend = false;
 
     //准备接收
     public static final int READY_RECEIVE = 7;
     //准备完成
     public static final int READY_COMPLETE = 8;
+    //进度
+    public static final int PROGRESS = 10;
     //数据请求
     public static final int SEND = 9;
     //接收完毕
-    public static final int RECEIVE_END = 10;
+    public static final int RECEIVE_END = 11;
     //补发确认
-    public static final int REISSUE = 11;
+    public static final int REISSUE = 12;
+
+    //补收确认
+    public static final int COLLECTION = 13;
 
     public DataHead() {
     }
@@ -46,7 +53,11 @@ public class DataHead {
         setId((String) map.get("id"));
         setTotal((int) (map.get("total") == null ? 0 : map.get("total")));
         setFileName((String) map.get("fileName"));
+        if (map.get("isSend") != null){
+            setSend((boolean) map.get("isSend"));
+        }
     }
+
     public int getType() {
         return type;
     }
@@ -112,7 +123,15 @@ public class DataHead {
         this.data = data;
     }
 
-    public  Map<String, Object> toMap() {
+    public boolean isSend() {
+        return isSend;
+    }
+
+    public void setSend(boolean send) {
+        isSend = send;
+    }
+
+    public Map<String, Object> toMap() {
         Map<String, Object> map = new HashMap<>();
         toMap(map);
         return map;
@@ -122,9 +141,10 @@ public class DataHead {
         map.put("type", getType());
         map.put("url", getUrl());
         map.put("id", getId());
-        map.put("index",getIndex());
+        map.put("index", getIndex());
         map.put("fileSize", getFileSize());
         map.put("fileName", getFileName());
         map.put("total", getTotal());
+        map.put("isSend", isSend());
     }
 }

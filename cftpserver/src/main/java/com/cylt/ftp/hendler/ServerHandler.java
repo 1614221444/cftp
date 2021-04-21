@@ -1,6 +1,5 @@
 package com.cylt.ftp.hendler;
 
-import com.alibaba.fastjson.JSONArray;
 import com.cylt.ftp.App;
 import com.cylt.ftp.codec.CFTPDecoder;
 import com.cylt.ftp.codec.CFTPEncoder;
@@ -8,6 +7,7 @@ import com.cylt.ftp.config.ConfigParser;
 import com.cylt.ftp.protocol.CFTPMessage;
 import com.cylt.ftp.protocol.DataHead;
 import com.cylt.ftp.server.Server;
+import com.cylt.ftp.test.Send;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.ChannelMatcher;
@@ -18,13 +18,9 @@ import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -55,6 +51,9 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
     public ChannelHandlerContext getCtx() {
         return ctx;
+    }
+    public Map<String, List<CFTPMessage>> getClientDataIds() {
+        return clientDataIds;
     }
 
     public ChannelGroup getChannels() {
@@ -89,7 +88,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                     break;
                 //处理数据
                 case CFTPMessage.TYPE_DATA:
-                    processData(ctx,message, false);
+                    processData(ctx,message, !message.getDataHead().isSend());
                     break;
                 default:
                     System.out.printf("非法请求");
@@ -235,6 +234,31 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         ) {
             return;
         }
+        if (DataHead.RECEIVE_END == message.getDataHead().getType()){
+            String key = message.getDataHead().getId();
+            System.out.println("\n数据传输完成 通道已关闭 数据通道id：" + key);
+            dataPortClose(key);
+
+            List<CFTPMessage> messages = clientDataIds.get(clientKey);
+            CFTPMessage remove = new CFTPMessage();
+            for (CFTPMessage mes : messages) {
+                if (message.getDataHead().getId().equals(mes.getDataHead().getId())) {
+                    remove = mes;
+                    break;
+                }
+            }
+            messages.remove(remove);
+            ServerHandler server = this;
+            Timer timer = new Timer();
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    Send send = new Send(server,"/Users/wuyh/Desktop/FTP/A/a.text");
+                    send.run();
+                }
+            }, 5000);
+            return;
+        }
         // 创建文件传输端口
         ServerHandler serverHandler = this;
         //初始化线程组
@@ -245,10 +269,10 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         ChannelInitializer channelInitializer = new ChannelInitializer() {
             @Override
             protected void initChannel(Channel channel) {
-                RemoteHandler remoteHandler = new RemoteHandler(serverHandler, port, message, isSend, 0);
+                RemoteHandler remoteHandler = new RemoteHandler(serverHandler, port, message, isSend);
                 channel.pipeline().addLast(
-                        //每隔五秒传递数据进度
-                        new IdleStateHandler(5,0,0, TimeUnit.SECONDS),
+                        //设置按天触发事件(如果连接一天未关闭则强制关闭)
+                        new IdleStateHandler(1,0,0, TimeUnit.DAYS),
                         //固定帧长解码器
                         new LengthFieldBasedFrameDecoder(App.MAX_FRAME_LENGTH, App.LENGTH_FIELD_OFFSET, App.LENGTH_FIELD_LENGTH, App.LENGTH_ADJUSTMENT, App.INITIAL_BYTES_TO_STRIP),
                         //自定义协议解码器
@@ -276,6 +300,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         Map<String, Object> map = message.getMetaData();
         message.getDataHead().setType(DataHead.READY_COMPLETE);
         map.put("remotePort", port);
+        message.getDataHead().toMap(map);
         message.setMetaData(map);
         ctx.writeAndFlush(message);
         System.out.println("数据端口 " + port + " 创建成功 ，等待连接");
@@ -290,6 +315,8 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         if (bossGroup.get(id) != null) {
             bossGroup.get(id).shutdownGracefully();
             workerGroup.get(id).shutdownGracefully();
+            bossGroup.remove(id);
+            workerGroup.remove(id);
         }
     }
 
@@ -300,7 +327,6 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         List<CFTPMessage> messageList = clientDataIds.get(this.clientKey);
         if (messageList != null && messageList.size() != 0){
             for (CFTPMessage message : messageList){
-                message.getDataHead().setType(DataHead.REISSUE);
                 ctx.writeAndFlush(message);
             }
             messageList.clear();

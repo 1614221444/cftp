@@ -7,12 +7,9 @@ import com.cylt.ftp.protocol.DataHead;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
-import java.awt.*;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.HashMap;
 
@@ -30,14 +27,27 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
 
     private boolean isSend;
     private int i = 0;
+    private ClientHandler client;
+    // 单次读最大数据（字节）
+    private int readMax = 20480;
+    private int weight = 0;
+    //数据通道
+    private FileChannel inChannel;
 
-    public LocalHandler(CFTPMessage msg, boolean isSend) {
-        this(msg,isSend,0);
+    public LocalHandler(ClientHandler client,CFTPMessage msg, boolean isSend) {
+        this(client,msg,isSend,0);
     }
-    public LocalHandler(CFTPMessage msg, boolean isSend, int i) {
+    public LocalHandler(ClientHandler client,CFTPMessage msg, boolean isSend, int i) {
         this.message = msg;
         this.isSend = isSend;
+        File file = new File(ConfigParser.get("path") + File.separator + this.message.getDataHead().getId());
+        try {
+            inChannel = new RandomAccessFile(file, "rw").getChannel();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
         this.i = i;
+        this.client = client;
     }
 
     public ChannelHandlerContext getLocalCtx() {
@@ -59,41 +69,57 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
     //读取内网服务器请求和数据
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        CFTPMessage cftpMessage = (CFTPMessage) msg;
-        switch (cftpMessage.getType()) {
-            // 准备接收
-            case DataHead.READY_RECEIVE:
-                readyReceive(cftpMessage);
-                break;
-            // 准备完成
-            case DataHead.READY_COMPLETE:
-                send(ctx, cftpMessage);
-                break;
-            // 数据
-            case DataHead.SEND:
-                receive(cftpMessage.getDataHead());
-                break;
+        try {
+            CFTPMessage cftpMessage = (CFTPMessage) msg;
+            switch (cftpMessage.getDataHead().getType()) {
+                // 准备接收
+                case DataHead.READY_RECEIVE:
+                    readyReceive(cftpMessage);
+                    break;
+                // 准备完成
+                case DataHead.READY_COMPLETE:
+                    send(ctx, cftpMessage);
+                    break;
+                // 数据
+                case DataHead.SEND:
+                    cftpMessage.getDataHead().setData(cftpMessage.getData());
+                    receive(cftpMessage.getDataHead());
+                    break;
+                // 进度
+                case DataHead.PROGRESS:
+                    progress(cftpMessage.getDataHead());
+                    break;
+            }
+        } catch (Exception e) {
+            System.out.println("数据处理异常");
+            e.printStackTrace();
         }
     }
 
     //连接断开
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) {
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         CFTPMessage message = new CFTPMessage();
         message.setType(CFTPMessage.TYPE_DISCONNECTED);
         HashMap<String, Object> metaData = new HashMap<>();
         metaData.put("channelId", ctx.channel().id().asLongText());
         message.setMetaData(metaData);
         App.ser.channel.writeAndFlush(message);
+        if (inChannel != null) {
+            inChannel.close();
+        }
         System.out.println(this.getClass() + "\r\n 与本地连接断开：" + ctx.channel().remoteAddress());
     }
 
     //连接异常
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         ctx.channel().close();
         System.out.println(this.getClass() + "\r\n 连接中断");
         cause.printStackTrace();
+        if (inChannel != null) {
+            inChannel.close();
+        }
     }
 
 
@@ -101,8 +127,6 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
 
         DataHead dataHead;
         try (FileInputStream in = new FileInputStream((String) this.message.getMetaData().get("url"))) {
-            // 单次读最大数据（字节）
-            int readMax = 20480;
             // 创建文件流通道
             FileChannel inChannel = in.getChannel().position(i * readMax);
             // 取文件质量
@@ -125,7 +149,6 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
                 if (i == total) {
                     buffer = ByteBuffer.allocate((int) fileSize % readMax);
                 }
-                System.out.println(i);
                 inChannel.read(buffer);
                 buffer.flip();
                 dataHead = message.getDataHead();
@@ -146,17 +169,55 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
      *
      * @param message
      */
-    private void receive(DataHead message) {
-        System.out.println(message.getIndex());
-        long size = 0;
-        try (FileOutputStream in = new FileOutputStream(ConfigParser.get("path") + File.separator + message.getId(), true)) {
+    private void receive(DataHead message) throws IOException {
+        // 按位置插入数据
+        MappedByteBuffer buffer = inChannel.map(FileChannel.MapMode.READ_WRITE,
+                message.getIndex() * readMax, message.getData().length);
+        buffer.put(message.getData());
 
-            FileChannel inChannel = in.getChannel();
-            inChannel.write(ByteBuffer.wrap(message.getData()));
-            size = inChannel.size();
-        } catch (IOException e) {
-            System.out.println(e.toString());
+        //计算进度
+        float progress = (float) message.getIndex() / ((float) this.message.getDataHead().getTotal() * 100);
+        //进度每过百分之一回传一次进度
+        if(weight > progress) {
+            CFTPMessage retn = new CFTPMessage();
+            retn.setType(CFTPMessage.TYPE_DATA);
+            DataHead dataHead = new DataHead();
+            dataHead.setType(DataHead.PROGRESS);
+            dataHead.setIndex(message.getIndex());
+            retn.setDataHead(dataHead);
+            localCtx.writeAndFlush(retn);
+            weight++;
         }
+        if (weight == 30) {
+           //System.exit(1);
+        }
+        // System.out.println(message.getDataHead().getIndex());
+        this.message.getDataHead().setIndex(message.getIndex());
+        if (message.getIndex() == this.message.getDataHead().getTotal()) {
+            CFTPMessage retn = new CFTPMessage();
+            retn.setMetaData(this.message.getMetaData());
+            retn.setType(CFTPMessage.TYPE_DATA);
+            message.setType(DataHead.RECEIVE_END);
+            message.setId(this.message.getDataHead().getId());
+            retn.setDataHead(message);
+            client.getCtx().writeAndFlush(retn);
+            System.out.println("\n数据传输完成 \n 数据id："
+                    + this.message.getDataHead().getId() + "\n文件大小：" + inChannel.size() / 1000000.00 + "M");
+            localCtx.channel().close();
+            client.dataPortClose(this.message.getDataHead().getId());
+            if (inChannel != null) {
+                inChannel.close();
+            }
+        }
+    }
+
+    /**
+     * 回执进度
+     * @param message 进度参数
+     */
+    private void progress(DataHead message) {
+        System.out.print("|");
+
     }
 
     private void readyReceive(CFTPMessage message) {

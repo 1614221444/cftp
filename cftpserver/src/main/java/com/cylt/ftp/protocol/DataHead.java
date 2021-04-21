@@ -23,6 +23,8 @@ public class DataHead {
     //消息内容
     private byte[] data;
 
+    //发送&接收
+    private boolean isSend = false;
 
     //准备接收
     public static final int READY_RECEIVE = 7;
@@ -30,10 +32,14 @@ public class DataHead {
     public static final int READY_COMPLETE = 8;
     //补发
     public static final int SEND = 9;
+    //进度
+    public static final int PROGRESS = 10;
     //接收完成
-    public static final int RECEIVE_END = 10;
+    public static final int RECEIVE_END = 11;
     //补发确认
-    public static final int REISSUE = 11;
+    public static final int REISSUE = 12;
+    //补收确认
+    public static final int COLLECTION = 13;
 
     public DataHead() {
     }
@@ -46,6 +52,9 @@ public class DataHead {
         setId((String) map.get("id"));
         setTotal((int) (map.get("total") == null ? 0 : map.get("total")));
         setFileName((String) map.get("fileName"));
+        if (map.get("isSend") != null){
+            setSend((boolean) map.get("isSend"));
+        }
     }
 
     public int getType() {
@@ -104,7 +113,13 @@ public class DataHead {
     public void setTotal(int total) {
         this.total = total;
     }
+    public boolean isSend() {
+        return isSend;
+    }
 
+    public void setSend(boolean send) {
+        isSend = send;
+    }
     public byte[] getData() {
         return data;
     }
@@ -126,5 +141,7 @@ public class DataHead {
         map.put("index", getIndex());
         map.put("fileSize", getFileSize());
         map.put("fileName", getFileName());
+        map.put("total", getTotal());
+        map.put("isSend", isSend());
     }
 }

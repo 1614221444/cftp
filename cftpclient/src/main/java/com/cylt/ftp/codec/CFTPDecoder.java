@@ -40,7 +40,7 @@ public class CFTPDecoder extends MessageToMessageDecoder<ByteBuf> {
 
             list.add(ftp);
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            System.out.println("数据解码错误" + e.getMessage());
         }
     }
 }

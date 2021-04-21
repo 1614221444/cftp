@@ -9,6 +9,7 @@ import io.netty.handler.codec.MessageToByteEncoder;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
 
 /**
  * CFTPEncoder编码器
@@ -23,6 +24,9 @@ public class CFTPEncoder extends MessageToByteEncoder<CFTPMessage> {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
              DataOutputStream dos = new DataOutputStream(baos)){
             dos.writeInt(type);
+            if(cftpMessage.getMetaData() == null){
+                cftpMessage.setMetaData(new HashMap<>());
+            }
             if(cftpMessage.getDataHead() != null){
                 cftpMessage.getDataHead().toMap(cftpMessage.getMetaData());
             }

@@ -4,8 +4,8 @@ data-port: 6666
 # data-local-port: 6565
 
 # host
-#server-host: 39.98.196.107
-server-host: 0.0.0.0
+server-host: 39.98.196.107
+#server-host: 0.0.0.0
 #server-host: 192.168.1.247
 # 本地服务器host
 local-host: 127.0.0.1
@@ -14,4 +14,4 @@ server-port: 9879
 # user
 client-key: 1234
 
-path: /Users/wuyh/Desktop/FTP/C
+path: /Users/wuyh/Desktop/FTP/b

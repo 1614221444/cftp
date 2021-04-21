@@ -1,11 +1,11 @@
 package com.cylt.ftp.server;
 
-import com.sun.xml.internal.rngom.ast.builder.BuildException;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
+import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import jdk.management.resource.internal.inst.WindowsAsynchronousSocketChannelImplRMHooks;
 
-import java.net.BindException;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -19,7 +19,7 @@ public class Server {
         try {
             ServerBootstrap serverBootstrap = new ServerBootstrap();
             serverBootstrap.group(bossGroup, workerGroup)
-                    .channel(NioServerSocketChannel.class)
+                    .channel(ServerSocketChannel.class)
                     .childHandler(channelInitializer)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
             //连接超时时间，连接公网服务器时可能会超时导致连接失败，最好不要设置
@@ -31,7 +31,7 @@ public class Server {
                 channel.deregister();
                 channel.close();
             });
-        } catch (InterruptedException e) {//TODO 这回接到试试
+        } catch (InterruptedException e) {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
             System.err.println(this.toString() + "\r\n bootStart(" + serverPort + ")中出现错误");

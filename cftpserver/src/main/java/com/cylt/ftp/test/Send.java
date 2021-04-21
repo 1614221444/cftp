@@ -1,9 +1,7 @@
 package com.cylt.ftp.test;
 
-import com.cylt.ftp.App;
 import com.cylt.ftp.config.ConfigParser;
-import com.cylt.ftp.handler.ClientHandler;
-import com.cylt.ftp.handler.LocalHandler;
+import com.cylt.ftp.hendler.ServerHandler;
 import com.cylt.ftp.protocol.CFTPMessage;
 import com.cylt.ftp.protocol.DataHead;
 
@@ -32,22 +30,16 @@ public class Send extends Thread {
 	 */
 	private int i;
 
-	/**
-	 * 发送&接收
-	 */
-	private boolean isSend;
+	private ServerHandler server;
 
-	private ClientHandler client;
-
-	public Send(String files, ClientHandler client, boolean isSend) {
-		this(UUID.randomUUID().toString(), files, client, 0, isSend);
+	public Send(ServerHandler server,String files) {
+		this(server,UUID.randomUUID().toString(), files, 0);
 	}
-	public Send(String id, String files, ClientHandler client, int i,boolean isSend) {
+	public Send(ServerHandler server,String id, String files, int i) {
 		this.files = files;
 		this.id = id;
 		this.i = i;
-		this.client = client;
-		this.isSend = isSend;
+		this.server = server;
 	}
 
 	@Override
@@ -70,27 +62,21 @@ public class Send extends Thread {
 			Date start = new Date();
 			HEART_BEAT = new CFTPMessage(CFTPMessage.TYPE_DATA);
 			metaData = new HashMap<>();
-			metaData.put("clientKey", ConfigParser.get("client-key"));
 			metaData.put("fileName", "b.text");
-			metaData.put("fileSize", fileSize);
-			metaData.put("total", total);
 			metaData.put("url", files);
-			metaData.put("id", id);
 			metaData.put("startDate", start);
+			metaData.put("clientKey", server.clientKey);
+			HEART_BEAT.setMetaData(metaData);
 			DataHead data = new DataHead();
 			data.setId(id);
 			data.setIndex(i);
-			data.setSend(isSend);
 			data.setFileName("b.text");
 			data.setFileSize((int) fileSize);
 			data.setTotal((int) total);
 			data.setUrl(files);
 			HEART_BEAT.setDataHead(data);
-			HEART_BEAT.setMetaData(metaData);
-			App.ser.channel.writeAndFlush(HEART_BEAT);
+			server.processData(server.getCtx(),HEART_BEAT,true);
 
-			LocalHandler localHandler = new LocalHandler(client,HEART_BEAT, isSend, i);
-			ClientHandler.localHandlerMap.put(id, localHandler);
 		} catch (IOException e) {
 			System.out.println(e.toString());
 		}

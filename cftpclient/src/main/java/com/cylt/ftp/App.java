@@ -43,6 +43,7 @@ public class App {
     public static void main(String[] args) {
         String serverHost = (String) ConfigParser.get("server-host");
         int serverPort = (Integer) ConfigParser.get("server-port");
+        ClientHandler client = new ClientHandler();
         ChannelInitializer<SocketChannel> channelInitializer = new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel socketChannel) throws Exception {
@@ -55,7 +56,7 @@ public class App {
                         new CFTPDecoder(),
                         //自定义协议编码器
                         new CFTPEncoder(),
-                        new ClientHandler(),
+                        client,
                         //客户端心跳机制处理器
                         new HeartBeatHandler(workerGroup)
                 );
@@ -67,7 +68,7 @@ public class App {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                Send send = new Send("/Users/wuyh/Desktop/FTP/A/b.text");
+                Send send = new Send("/Users/wuyh/Desktop/FTP/A/b.text", client, true);
                 send.run();
             }
         }, 5000);

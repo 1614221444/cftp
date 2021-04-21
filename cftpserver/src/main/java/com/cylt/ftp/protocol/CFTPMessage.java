@@ -26,6 +26,12 @@ public class CFTPMessage {
     //数据传输
     public static final int TYPE_DATA = 6;
 
+    public CFTPMessage() {
+    }
+
+    public CFTPMessage(int type) {
+        this.type = type;
+    }
 
     public int getType() {
         return type;

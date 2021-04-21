@@ -37,7 +37,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     //serverPort与localPort映射map
     private ConcurrentHashMap<Integer, Integer> portMap = new ConcurrentHashMap<>();
     //所有localChannel共享，减少线程上下文切换
-    private EventLoopGroup localGroup = new NioEventLoopGroup();
+    private Map<String, EventLoopGroup> localGroup = new HashMap<>();
     //每个外部请求channelId与其处理器handler的映射关系
     public static ConcurrentHashMap<String, LocalHandler> localHandlerMap = new ConcurrentHashMap<>();
 
@@ -101,7 +101,9 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         channels.close();
         System.out.println(this.getClass() + "\r\n 与服务器连接断开");
-        localGroup.shutdownGracefully();
+        for (String id : localGroup.keySet()) {
+            dataPortClose(id);
+        }
     }
 
     //异常处理
@@ -137,14 +139,14 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
      * @Param [message]
      **/
     public void processConnected(CFTPMessage message) {
+        ClientHandler client = this;
         ChannelInitializer channelInitializer = new ChannelInitializer() {
             @Override
             protected void initChannel(Channel channel) throws Exception {
-
                 LocalHandler localHandler = localHandlerMap.get(message.getDataHead().getId());
                 // 判断有没有创建处理器实例 如果创建了说明是当前端发送的请求 (需要发送文件端)
-                if(localHandler == null){
-                    localHandler = new LocalHandler(message, false);
+                if (localHandler == null) {
+                    localHandler = new LocalHandler(client, message, false);
                 }
                 channel.pipeline().addLast(
                         //固定帧长解码器ClientHandler
@@ -162,9 +164,26 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
         //这里根据portMap将远程服务器端口作为key获取对应的本地端口
         int remotePort = (Integer) message.getMetaData().get("remotePort");
         Client localHelper = new Client();
-        localHelper.start(localGroup, channelInitializer, server, remotePort);
+
+        EventLoopGroup local = new NioEventLoopGroup();
+        localGroup.put(message.getDataHead().getId(), local);
+        localHelper.start(local, channelInitializer, server, remotePort);
         localHelperMap.put(message.getDataHead().getId(), localHelper);
         System.out.println("服务器" + remotePort + "端口进入连接，正在向本地端口建立连接, 数据id：" + message.getDataHead().getId());
+    }
+
+
+    /**
+     * 关闭数据通道
+     *
+     * @param id 通道id
+     */
+    public void dataPortClose(String id) {
+        //取消正在监听的端口，否则第二次连接时无法再次绑定端口
+        if (localGroup.get(id) != null) {
+            localGroup.get(id).shutdownGracefully();
+        }
+        localGroup.remove(id);
     }
 
     /**
@@ -197,7 +216,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
             // 外部请求进入，开始与内网建立连接
             case DataHead.RECEIVE_END:
                 String key = message.getDataHead().getId();
-                System.out.println("数据传输完成 通道已关闭 数据通道id：" + key);
+                System.out.println("\n数据传输完成 通道已关闭 数据通道id：" + key);
                 localHelperMap.get(key).close();
                 localHelperMap.remove(key);
                 break;
@@ -207,8 +226,18 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
                 System.out.println("数据补发 通道开启 数据通道id：" + message.getMetaData().get("id")
                         + "\n补发初始化上传进度：" + message.getMetaData().get("index"));
                 Send send = new Send((String) message.getMetaData().get("id"),
-                        (String) message.getMetaData().get("url"),(int) message.getMetaData().get("index"));
+                        (String) message.getMetaData().get("url"),this, (int) message.getMetaData().get("index"), true);
                 send.run();
+                break;
+                // 补发数据确认
+            case DataHead.COLLECTION:
+                //这里没有确认动作 自动补收
+                System.out.println("数据补收 通道开启 数据通道id：" + message.getMetaData().get("id")
+                        + "\n断点续传进度：" + message.getMetaData().get("index"));
+                Send collection = new Send((String) message.getMetaData().get("id"),
+                        (String) message.getMetaData().get("url"),this, message.getDataHead().getIndex(), false);
+                collection.run();
+                break;
         }
     }
 
