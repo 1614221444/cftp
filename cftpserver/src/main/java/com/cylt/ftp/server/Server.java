@@ -4,7 +4,6 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import jdk.management.resource.internal.inst.WindowsAsynchronousSocketChannelImplRMHooks;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -19,7 +18,7 @@ public class Server {
         try {
             ServerBootstrap serverBootstrap = new ServerBootstrap();
             serverBootstrap.group(bossGroup, workerGroup)
-                    .channel(ServerSocketChannel.class)
+                    .channel(NioServerSocketChannel.class)
                     .childHandler(channelInitializer)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
             //连接超时时间，连接公网服务器时可能会超时导致连接失败，最好不要设置

@@ -86,7 +86,7 @@ public class RemoteHandler extends ChannelInboundHandlerAdapter {
         }
         // 将已接收的数据序列化到文件
         serverHandler.dataPortClose(this.message.getDataHead().getId());
-        System.out.println(this.getClass() + "\r\n 客户端连接中断：" + ctx.channel().remoteAddress());
+        System.out.println(this.getClass() + "\r\n 数据连接中断：" + ctx.channel().remoteAddress());
     }
 
     //读取外部连接数据
