@@ -1,5 +1,6 @@
 package com.createlt.cis.sys.controller;
 
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.createlt.cis.common.BaseController;
 import com.createlt.cis.sys.entity.SysMenu;
 import com.createlt.cis.sys.service.ISysMenuService;
@@ -37,7 +38,11 @@ public class SysMenuController extends BaseController {
 
     @RequestMapping(value = "save")
     public String save(SysMenu menu) {
-        menuService.save(menu);
+        if(StringUtils.isEmpty(menu.getId())) {
+            menuService.save(menu);
+        } else {
+            menuService.updateById(menu);
+        }
         return responseSuccess();
     }
 

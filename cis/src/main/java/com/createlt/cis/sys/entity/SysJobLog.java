@@ -1,12 +1,12 @@
 package com.createlt.cis.sys.entity;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import java.io.Serializable;
-import java.time.LocalDateTime;
+import com.createlt.cis.common.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
 
 /**
  * <p>
@@ -19,11 +19,9 @@ import lombok.Setter;
 @Getter
 @Setter
 @TableName("SYS_JOB_LOG")
-public class SysJobLog implements Serializable {
+public class SysJobLog extends BaseEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
-
-    private String id;
 
     /**
      * 模块名
@@ -49,33 +47,6 @@ public class SysJobLog implements Serializable {
      * 共用时
      */
     private Float timeUse;
-
-    /**
-     * 删除标记
-     */
-    private String delState;
-
-    /**
-     * 修改时间
-     */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
-
-    /**
-     * 修改人
-     */
-    private String updateBy;
-
-    /**
-     * 新增时间
-     */
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    /**
-     * 新增人
-     */
-    private String createBy;
 
 
 }

@@ -37,8 +37,7 @@ export default {
     errorList: [],
     hasReadErrorPage: false,
     menuList: [],
-    pushList: [],
-    pushedList: []
+    websocket: []
   },
   getters: {
     // menuList: (state, getters, rootState) => getMenuByRouter(routers, rootState.user.access),
@@ -130,6 +129,13 @@ export default {
       })
     },
     getDictData ({ commit, rootState }) {
+      getNoPageList().then(res => {
+        commit('setDictList', res.data)
+      }).catch(e => {
+        console.log(e)
+      })
+    },
+    websocket ({ commit, rootState }) {
       getNoPageList().then(res => {
         commit('setDictList', res.data)
       }).catch(e => {

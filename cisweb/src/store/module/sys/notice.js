@@ -1,4 +1,4 @@
-import { getList, save, del, push, news, read, readAll, delPush } from '@/api/sys/notice'
+import { getList, save, del, push, news, read, readAll, delPush,getRoleList } from '@/api/sys/notice'
 
 export default {
   state: {
@@ -25,6 +25,11 @@ export default {
       state.loading = false
     },
     getNotice (state, data) {
+      let roleLists = []
+      for (let i in data.roleList) {
+        roleLists.push(data.roleList[i].roleId)
+      }
+      data.roleList = roleLists
       state.info = data
       // 这里把int类型的数据强转成字符串类型    因为字典value就是字符串类型 必须全部匹配才能被select组件识别（===）
       state.info.pushType = data.pushType + ''
@@ -47,7 +52,10 @@ export default {
       commit('insertNotice', params)
     },
     getNotice ({ commit, rootState }, params) {
-      commit('getNotice', params)
+      getRoleList(params.id).then(res => {
+        params.roleList = res.data
+        commit('getNotice', params)
+      })
     },
     saveNotice ({ commit, rootState }) {
       return save(rootState.notice.info)

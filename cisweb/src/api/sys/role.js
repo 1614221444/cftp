@@ -30,3 +30,12 @@ export const del = (id) => {
     method: 'post'
   })
 }
+
+export const getJurisdictionList = (roleId) => {
+  return axios.request({
+    url: '/sys/role/getJurisdictionList',
+    data: { roleId: roleId },
+    method: 'post'
+  })
+}
+

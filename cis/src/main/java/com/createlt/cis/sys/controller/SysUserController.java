@@ -216,8 +216,8 @@ public class SysUserController  extends BaseController {
     }
 
     /**
-     * 获取当前登录用户
-     * @return 用户
+     * 获取用户的角色
+     * @return 角色
      */
     @ResponseBody
     @RequestMapping(value = "getRoleList")

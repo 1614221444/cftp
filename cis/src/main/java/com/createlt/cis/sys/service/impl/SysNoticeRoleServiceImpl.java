@@ -1,10 +1,14 @@
 package com.createlt.cis.sys.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.createlt.cis.sys.entity.SysNoticeRole;
 import com.createlt.cis.sys.mapper.SysNoticeRoleMapper;
 import com.createlt.cis.sys.service.ISysNoticeRoleService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
  * <p>
@@ -15,6 +19,13 @@ import org.springframework.stereotype.Service;
  * @since 2022-08-25
  */
 @Service
+@Transactional
 public class SysNoticeRoleServiceImpl extends ServiceImpl<SysNoticeRoleMapper, SysNoticeRole> implements ISysNoticeRoleService {
+    @Override
+    public void save(String noticeId, List<SysNoticeRole> roleList) {
+        this.remove(new LambdaQueryWrapper<SysNoticeRole>()
+                .eq(SysNoticeRole::getNoticeId,noticeId));
+        this.saveBatch(roleList);
+    }
 
 }

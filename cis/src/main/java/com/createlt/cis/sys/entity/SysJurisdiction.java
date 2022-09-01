@@ -1,14 +1,13 @@
 package com.createlt.cis.sys.entity;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.createlt.cis.common.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
 
 /**
  * <p>
@@ -21,11 +20,9 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @TableName("SYS_JURISDICTION")
-public class SysJurisdiction implements Serializable, GrantedAuthority {
+public class SysJurisdiction extends BaseEntity implements Serializable, GrantedAuthority {
 
     private static final long serialVersionUID = 1L;
-
-    private String id;
 
     /**
      * 角色主键
@@ -40,39 +37,12 @@ public class SysJurisdiction implements Serializable, GrantedAuthority {
     /**
      * 删除标识
      */
-    private Integer del;
+    private Boolean del;
 
     /**
      * 修改标识
      */
-    private Integer edit;
-
-    /**
-     * 删除标记
-     */
-    private String delState;
-
-    /**
-     * 新增人
-     */
-    private String createBy;
-
-    /**
-     * 修改人
-     */
-    private String updateBy;
-
-    /**
-     * 新增时间
-     */
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    /**
-     * 修改时间
-     */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
+    private Boolean edit;
 
 
     /**

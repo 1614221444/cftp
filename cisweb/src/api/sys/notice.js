@@ -62,3 +62,11 @@ export const delPush = (data) => {
     method: 'post'
   })
 }
+
+export const getRoleList = (id) => {
+  return axios.request({
+    url: '/sys/notice/getRoleList',
+    data: { noticeId: id },
+    method: 'post'
+  })
+}

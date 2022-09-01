@@ -1,5 +1,6 @@
 import { getRoleList, getRoleNoPageList, save as saveRole, del as delRole } from '@/api/sys/role'
 import { ergodicTree } from '@/libs/util'
+import {getJurisdictionList} from "../../../api/sys/role";
 export default {
   state: {
     roleList: [],
@@ -29,7 +30,7 @@ export default {
       state.roleNoPageList = list
     },
     // 封装角色与菜单关系 前台展示的结构
-    setJurisdictionList (state, menu) {
+    setJurisdictionList (state, menu, jurisdictionList) {
       state.info.newJurisdictionList = JSON.parse(JSON.stringify(menu))
       if (state.info.jurisdictionList === undefined) {
         state.info.jurisdictionList = []
@@ -38,8 +39,8 @@ export default {
         // 是否展开
         data.expand = true
         for (let i in state.info.jurisdictionList) {
-          if (state.info.jurisdictionList[i].menu) {
-            if (data.id === state.info.jurisdictionList[i].menu.id) {
+          if (state.info.jurisdictionList[i]) {
+            if (data.id === state.info.jurisdictionList[i].menuId) {
               data.checked = true
               data.del = state.info.jurisdictionList[i].del
               data.edit = state.info.jurisdictionList[i].edit
@@ -56,6 +57,7 @@ export default {
         if (data.checked) {
           let jurisdiction = {
             roleId: state.info.id,
+            menuId: data.data.id,
             menu: data.data,
             del: data.del,
             edit: data.edit
@@ -83,8 +85,11 @@ export default {
       })
     },
     getSysRole ({ commit, rootState }, params) {
-      commit('getRole', params)
-      commit('setJurisdictionList', rootState.app.menuList)
+      getJurisdictionList(params.id).then(res => {
+        params.jurisdictionList = res.data
+        commit('getRole', params)
+        commit('setJurisdictionList', rootState.app.menuList)
+      })
     },
     saveSysRole ({ commit, rootState }) {
       commit('getJurisdictionList')

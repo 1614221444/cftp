@@ -193,8 +193,9 @@ export default {
             index = sourceRoleList.findIndex((obj) => {
               return obj.id === roleList[i]
             })
-            roleList[i] = sourceRoleList[index]
+            roleList[i] = { roleId: sourceRoleList[index].id }
           }
+          this.$store.state.notice.info.roleList = roleList
           store.dispatch('saveNotice').then(res => {
             if (res.data.code === 200) {
               this.query()

@@ -201,8 +201,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     public void configure(WebSecurity web) {
         //对于在header里面增加token等类似情况，放行所有OPTIONS请求。
         web.ignoring().antMatchers(HttpMethod.OPTIONS, "/**");
+        web.ignoring().antMatchers("/**/websocket/**");
         // 放行swagger框架API
-        web.ignoring().antMatchers(HttpMethod.GET, "/doc.html", "/webjars/**", "/swagger-resources/**", "/v2/api-docs");
+        web.ignoring().antMatchers(HttpMethod.GET, "/doc.html", "/webjars/**", "/swagger-resources/**", "/v2/api-docs", "/websocket/*");
     }
 
     @Bean

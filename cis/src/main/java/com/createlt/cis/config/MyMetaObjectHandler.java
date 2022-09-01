@@ -43,6 +43,6 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
             user = new SysUser();
             user.setId("匿名用户");
         }
-        return user.getId();
+        return user.getUserName();
     }
 }

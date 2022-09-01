@@ -171,10 +171,11 @@ export default {
       notice: 'Notice',
       job: 'Job'
     },
-    customer: {
-      name: 'Gateway',
-      product: 'Product',
-      user: 'User'
+    cis: {
+      name: 'Join',
+      controller: 'Controller',
+      service: 'Service',
+      dao: 'Dao'
     }
   },
   // dict

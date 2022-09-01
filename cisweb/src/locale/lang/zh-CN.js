@@ -172,10 +172,11 @@ export default {
       notice: '通知',
       job: '任务'
     },
-    customer: {
-      name: '门户管理',
-      product: '产品',
-      user: '用户'
+    cis: {
+      name: '连接管理',
+      controller: '适配器',
+      service: '解析器',
+      dao: '适配器'
     }
   },
   // dict

@@ -1,13 +1,11 @@
 package com.createlt.cis.sys.entity;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.createlt.cis.common.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
 
 /**
  * <p>
@@ -20,14 +18,9 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @TableName("SYS_MENU")
-public class SysMenu implements Serializable {
+public class SysMenu extends BaseEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
-
-    /**
-     * 主键
-     */
-    private String id;
 
     /**
      * 父主键
@@ -57,34 +50,6 @@ public class SysMenu implements Serializable {
     /**
      * 是否显示
      */
-    private String showMenu;
-
-    /**
-     * 删除标识
-     */
-    private String delState;
-
-    /**
-     * 新增人
-     */
-    private String createBy;
-
-    /**
-     * 修改人
-     */
-    private String updateBy;
-
-    /**
-     * 新增时间
-     */
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
-
-    /**
-     * 修改时间
-     */
-    @TableField(fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updateTime;
-
+    private Boolean showMenu;
 
 }
