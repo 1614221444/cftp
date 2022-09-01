@@ -10,7 +10,8 @@ import log from './module/sys/log'
 import dict from './module/sys/dict'
 import notice from './module/sys/notice'
 import job from './module/sys/job'
-
+import controller from './module/cis/controller'
+import authentication from './module/cis/authentication'
 Vue.use(Vuex)
 
 export default new Vuex.Store({
@@ -31,7 +32,9 @@ export default new Vuex.Store({
     log,
     dict,
     notice,
-    job
+    job,
+    controller,
+    authentication
   },
   plugins: [
     createVuexAlong({

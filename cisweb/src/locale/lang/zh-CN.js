@@ -135,26 +135,6 @@ export default {
       methodName: '方法名称'
     }
   },
-  neugart: {
-    title: '标题',
-    icon: '图标',
-    value: '内容',
-    valuationType: '计费类型',
-    valuation: '计费值',
-    custType: '用户类型',
-    order: '顺序',
-    defaultData: '默认选中',
-    discount: {
-      number: '折扣数量',
-      discount: '折扣(%)'
-    }
-  },
-  customer: {
-    loginId: '登录名(手机号)',
-    customerName: '客户名称',
-    customerType: '客户类型',
-    remakes: '备注'
-  },
   // menu
   menu: {
     name: '菜单名称',
@@ -195,20 +175,30 @@ export default {
         suspend: '暂停'
       }
     },
-    neugart: {
-      customerType: {
-        v1: '一级采购方',
-        v2: '二级采购方',
-        v3: '三级采购方',
-        v4: '四级采购方',
-        v5: '五级采购方',
-        v6: '六级采购方'
+    cis: {
+      start: {
+        auto: '自动',
+        manual: '手动'
       },
-      valuationType: {
-        noCharge: '不计费',
-        RMB: '人民币',
-        percentage: '百分比'
+      server: {
+        service: '服务端',
+        client: '客户端'
+      },
+      agreement: {
+        cftp: 'CFTP'
       }
+    }
+  },
+  // cis
+  cis: {
+    controller: {
+      startType: '启动类型',
+      serverType: '服务类型',
+      ip: '地址',
+      port: '端口',
+      agreementType: '协议',
+      controllerName: '适配器名称',
+      startTime: '上次启动时间'
     }
   }
 }

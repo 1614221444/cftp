@@ -133,26 +133,6 @@ export default {
       methodName: 'Method Name'
     }
   },
-  neugart: {
-    title: 'Title',
-    icon: 'Icon',
-    value: 'Value',
-    valuationType: 'Valuation Type',
-    valuation: 'Valuation',
-    custType: 'Customer Type',
-    order: 'Order',
-    defaultData: 'Default',
-    discount: {
-      number: 'Number',
-      discount: 'Discount (%)'
-    }
-  },
-  customer: {
-    loginId: 'Login Id',
-    customerName: 'Customer Name',
-    customerType: 'Customer Type',
-    remakes: 'Remakes'
-  },
   // menu
   menu: {
     name: 'Menu Name',
@@ -190,22 +170,32 @@ export default {
       job: {
         start: 'Start',
         suspend: 'Suspend'
-      }
-    },
-    neugart: {
-      customerType: {
-        v1: 'Level 1',
-        v2: 'Level 2',
-        v3: 'Level 3',
-        v4: 'Level 4',
-        v5: 'Level 5',
-        v6: 'Level 6'
       },
-      valuationType: {
-        noCharge: 'No Charge',
-        RMB: 'RMB',
-        percentage: 'Percentage'
+      cis: {
+        start: {
+          auto: 'Auto',
+          manual: 'Manual'
+        },
+        server: {
+          service: 'Service',
+          client: 'Client'
+        },
+        agreement: {
+          cftp: 'CFTP'
+        }
       }
+    }
+  },
+  // cis
+  cis: {
+    controller: {
+      startType: 'Start Type',
+      serverType: 'Server Type',
+      ip: 'IP',
+      port: 'Port',
+      agreementType: 'Agreement',
+      controllerName: 'Adapter Name',
+      startTime: 'Start Time'
     }
   }
 }
