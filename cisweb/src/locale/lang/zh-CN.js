@@ -186,6 +186,10 @@ export default {
       },
       agreement: {
         cftp: 'CFTP'
+      },
+      join: {
+        user: '用户名/密码',
+        certificate: '证书/密码'
       }
     }
   },
@@ -198,7 +202,13 @@ export default {
       port: '端口',
       agreementType: '协议',
       controllerName: '适配器名称',
-      startTime: '上次启动时间'
+      startTime: '上次启动时间',
+      authType: '认证类型'
+    },
+    authentication: {
+      user: '用户名',
+      certificate: '证书名',
+      password: '密码'
     }
   }
 }

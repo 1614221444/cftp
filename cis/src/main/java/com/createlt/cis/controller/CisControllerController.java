@@ -3,6 +3,11 @@ package com.createlt.cis.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.createlt.agreement.base.BaseClient;
+import com.createlt.agreement.base.BaseServer;
+import com.createlt.agreement.client.CftpClient;
+import com.createlt.agreement.server.CftpServer;
+import com.createlt.cis.entity.CisAuthentication;
 import com.createlt.cis.entity.CisController;
 import com.createlt.cis.service.ICisAuthenticationService;
 import com.createlt.cis.service.ICisControllerService;
@@ -10,6 +15,10 @@ import com.createlt.common.BaseController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * <p>
@@ -23,13 +32,23 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/cis/controller")
 public class CisControllerController extends BaseController {
 
-    private ICisControllerService sisControllerService;
-    private ICisAuthenticationService sisAuthenticationService;
+    private ICisControllerService cisControllerService;
+    private ICisAuthenticationService cisAuthenticationService;
+
+    /**
+     * 服务器池
+     */
+    public static Map<String, BaseServer> serverMap = new HashMap<>();
+
+    /**
+     * 客户端池
+     */
+    public static Map<String, BaseClient> clientMap = new HashMap<>();
 
     @Autowired
-    public CisControllerController (ICisControllerService sisControllerService,ICisAuthenticationService sisAuthenticationService) {
-        this.sisControllerService = sisControllerService;
-        this.sisAuthenticationService = sisAuthenticationService;
+    public CisControllerController (ICisControllerService cisControllerService,ICisAuthenticationService cisAuthenticationService) {
+        this.cisControllerService = cisControllerService;
+        this.cisAuthenticationService = cisAuthenticationService;
     }
 
     /**
@@ -41,7 +60,7 @@ public class CisControllerController extends BaseController {
      */
     @RequestMapping(value = "list")
     public String list(CisController controller, Page<CisController> page) {
-        page = sisControllerService.page(page, new LambdaQueryWrapper<CisController>()
+        page = cisControllerService.page(page, new LambdaQueryWrapper<CisController>()
                 .eq(!StringUtils.isEmpty(controller.getControllerName()), CisController::getControllerName, controller.getControllerName()));
         return getJson(page);
     }
@@ -57,10 +76,17 @@ public class CisControllerController extends BaseController {
     public String save(CisController controller) {
         if(StringUtils.isEmpty(controller.getId())) {
             controller.setIsStart(false);
-            sisControllerService.save(controller);
+            cisControllerService.save(controller);
         } else {
-            sisControllerService.updateById(controller);
+            cisControllerService.updateById(controller);
         }
+        for(CisAuthentication auth : controller.getAuthList()) {
+            auth.setControllerId(controller.getId());
+        }
+        // 替换更新
+        cisAuthenticationService.remove(new LambdaQueryWrapper<CisAuthentication>()
+                .eq(CisAuthentication::getControllerId, controller.getId()));
+        cisAuthenticationService.saveBatch(controller.getAuthList());
         return responseSuccess();
     }
 
@@ -72,10 +98,11 @@ public class CisControllerController extends BaseController {
      */
     @RequestMapping(value = "delete")
     public String delete(CisController controller) {
-        sisControllerService.removeById(controller.getId());
+        cisControllerService.removeById(controller.getId());
+        cisAuthenticationService.remove(new LambdaQueryWrapper<CisAuthentication>()
+                .eq(CisAuthentication::getControllerId, controller.getId()));
         return responseSuccess();
     }
-
 
     /**
      * 启动服务
@@ -85,9 +112,29 @@ public class CisControllerController extends BaseController {
      */
     @RequestMapping(value = "start")
     public String start(String id) {
-        CisController controller = sisControllerService.getById(id);
+        CisController controller = cisControllerService.getById(id);
         controller.setIsStart(true);
-        sisControllerService.updateById(controller);
+        // 服务端启动
+        if ("0".equals(controller.getServerType())) {
+            CftpServer server = new CftpServer();
+            try {
+                server.start(Integer.parseInt(controller.getPort()), id);
+            } catch (Exception e) {
+                return responseFail(e.getMessage());
+            }
+            serverMap.put(id, server);
+        } else {
+            // 客户端启动
+            CftpClient client = new CftpClient();
+            try {
+                client.start(controller.getIp(), Integer.parseInt(controller.getPort()), id);
+            } catch (Exception e) {
+                client.stop();
+                return responseFail(e.getMessage());
+            }
+            clientMap.put(id,client);
+        }
+        cisControllerService.updateById(controller);
         return responseSuccess();
     }
 
@@ -99,9 +146,33 @@ public class CisControllerController extends BaseController {
      */
     @RequestMapping(value = "stop")
     public String stop(String id) {
-        CisController controller = sisControllerService.getById(id);
+        CisController controller = cisControllerService.getById(id);
         controller.setIsStart(false);
-        sisControllerService.updateById(controller);
+        if ("0".equals(controller.getServerType())) {
+            if(serverMap.get(id) != null) {
+                serverMap.get(id).stop();
+                serverMap.remove(id);
+            }
+        } else {
+            if(clientMap.get(id) != null) {
+                clientMap.get(id).stop();
+                clientMap.remove(id);
+            }
+        }
+        cisControllerService.updateById(controller);
         return responseSuccess();
+    }
+
+    /**
+     * 查询认证
+     *
+     * @param controllerId 外键ID
+     * @return 查询结果
+     */
+    @RequestMapping(value = "getAuthList")
+    public String getAuthList(String controllerId) {
+        List<CisAuthentication> authList = cisAuthenticationService.list(new LambdaQueryWrapper<CisAuthentication>()
+                .eq(CisAuthentication::getControllerId, controllerId));
+        return getJson(authList);
     }
 }

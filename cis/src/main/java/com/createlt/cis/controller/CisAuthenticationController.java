@@ -1,8 +1,11 @@
 package com.createlt.cis.controller;
 
+import com.createlt.cis.service.ICisAuthenticationService;
 import com.createlt.common.BaseController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import javax.annotation.Resource;
 
 /**
  * <p>
@@ -16,4 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/cis/authentication")
 public class CisAuthenticationController extends BaseController {
 
+    @Resource
+    private ICisAuthenticationService cisAuthenticationService;
 }

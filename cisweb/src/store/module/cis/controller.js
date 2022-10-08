@@ -1,4 +1,4 @@
-import { getList, save, del, start, stop } from '@/api/cis/controller'
+import { getList, save, del, getAuthList, start, stop } from '@/api/cis/controller'
 
 export default {
   state: {
@@ -18,9 +18,12 @@ export default {
     },
     getController (state, data) {
       state.info = data
+      state.info.authType = '0'
     },
-    insertController (state, pid) {
+    insertController (state) {
       state.info = {}
+      state.info.authType = '0'
+      state.info.authList = []
     }
   },
   actions: {
@@ -44,6 +47,9 @@ export default {
     },
     delCisController ({ commit, rootState }, id) {
       return del(id)
+    },
+    getAuthList({ commit, rootState }, controllerId) {
+      return getAuthList(controllerId)
     },
     startCisController ({ commit, rootState }, id) {
       return start(id)

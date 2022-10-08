@@ -34,7 +34,7 @@
          v-for="(data, index) in $store.state.controller.controllerList"
          :key="index"
         class="server">
-      <Card>
+      <Card :class="['server',data.serverType === '1'? 'service':'client']">
         <p slot="title">
           {{data.controllerName}}
         </p>
@@ -121,6 +121,25 @@
               <Input v-model="$store.state.controller.info.port" :placeholder="$t('system.pleaseEnter') + $t('cis.controller.port')" />
             </FormItem>
           </Col>
+          <Col span="24">
+            <FormItem :label="$t('cis.controller.authType')"  prop="authList">
+              <Select v-model="$store.state.controller.info.authType" style="width: 100%">
+                <Option v-for="item in $dictList('JOIN_TYPE')" :value="item.dictValue" :key="item.id">{{ $t(item.title) }}</Option>
+              </Select>
+            </FormItem>
+          </Col>
+          <Col span="24">
+            <Table
+              context-menu
+              show-context-menu
+              :columns="columnsAuthList"
+              :data="$store.state.controller.info.authList"
+              border
+              stripe
+            >
+            </Table>
+            <Input v-model="$store.state.controller.info.authListCsv" @on-change="setAuthList" type="textarea" :autosize="{minRows: 10,maxRows: 50}" placeholder="userName,password..."/>
+          </Col>
         </Row>
       </Form>
       <div class="demo-drawer-footer">
@@ -157,7 +176,11 @@ export default {
         port: [
           { required: true, message: this.$t('cis.controller.port') + this.$t('system.validate.notNull'), trigger: 'blur' }
         ]
-      }
+      },
+      columnsAuthList: [
+        { title: this.$t('cis.authentication.user'), key: 'loginName' },
+        { title: this.$t('cis.authentication.password'), key: 'password' }
+      ]
     }
   },
   methods: {
@@ -198,7 +221,11 @@ export default {
       store.dispatch('getCisControllerList', this.$store.state.controller.query)
     },
     info (row) {
-      store.dispatch('getCisController', row)
+      store.dispatch('getAuthList', {controllerId: row.id}).then((res) => {
+        row.authListCsv = this.getAuthList(res.data)
+        row.authList = this.setAuthList(null, row.authListCsv, row.authType)
+        store.dispatch('getCisController', row)
+      })
       this.isInfo = true
     },
     changePage (pageNumber) {
@@ -210,6 +237,10 @@ export default {
       this.$store.state.controller.query.singlePage = pageSizeNumber
       this.query()
     },
+    /**
+     * 切换服务类型事件
+     * @param data
+     */
     changeServerType (data) {
       if (data === '0') {
         this.$store.state.controller.info.ip = 'localhost'
@@ -217,15 +248,25 @@ export default {
         this.$store.state.controller.info.ip = ''
       }
     },
+    /**
+     * 启动服务端/客户端
+     * @param data 启动参数
+     */
     start (data) {
       store.dispatch('startCisController', data.id).then(res => {
         if (res.data.code === 200) {
           this.query()
           this.$Message.success(this.$t('system.success'))
           this.isInfo = false
+        } else {
+          this.$Message.error(res.data.message)
         }
       })
     },
+    /**
+     * 停止服务端/客户端
+     * @param data
+     */
     stop (data) {
       store.dispatch('stopCisController', data.id).then(res => {
         if (res.data.code === 200) {
@@ -234,6 +275,41 @@ export default {
           this.isInfo = false
         }
       })
+    },
+    getAuthList (authenticationList) {
+      let authListCsv = ''
+      for (let data in authenticationList) {
+        authListCsv += authenticationList[data].loginName + ',' + authenticationList[data].password+ ',\n'
+      }
+      return authListCsv
+    },
+    setAuthList (_this, data, authType) {
+      if(_this) {
+        data = _this.target.value
+        authType = this.$store.state.controller.info.authType
+      }
+      if (data.substring(data.length - 1, data.length) !== ',') {
+        data += ','
+      }
+      data = data.replaceAll('\n','')
+      let csv = data.split(',')
+      let title = ['loginName', 'password']
+      let authList = []
+      let auth = { joinType: authType }
+      let titleIndex = 0
+      for (let i in csv) {
+        // 判断是否完整
+        if (titleIndex === title.length) {
+          authList.push(auth)
+          auth = { joinType: authType }
+          titleIndex = 0
+        }
+        auth[title[titleIndex]] = csv[i]
+        titleIndex++
+      }
+      this.$store.state.controller.info.authList = authList
+      this.$forceUpdate()
+      return authList
     }
   }
 }
@@ -270,6 +346,13 @@ export default {
     cursor: pointer;
   }
   .server_text {
-    padding: 2px 1px
+    padding: 2px 1px;
+    font-size: 15px;
+  }
+  .service{
+    background-color: #8debe3;
+  }
+  .client{
+    background-color: #ebde8d;
   }
 </style>

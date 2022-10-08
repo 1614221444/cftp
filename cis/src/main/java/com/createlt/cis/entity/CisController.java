@@ -1,5 +1,6 @@
 package com.createlt.cis.entity;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.createlt.common.BaseEntity;
 import lombok.Getter;
@@ -7,6 +8,7 @@ import lombok.Setter;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 
 /**
  * <p>
@@ -62,5 +64,11 @@ public class CisController extends BaseEntity implements Serializable {
      * 启动时间
      */
     private Date startTime;
+
+    /**
+     * 启动时间
+     */
+    @TableField(exist = false)
+    private List<CisAuthentication> authList;
 
 }

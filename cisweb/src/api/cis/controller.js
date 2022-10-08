@@ -31,6 +31,13 @@ export const del = (id) => {
   })
 }
 
+export const getAuthList = (controllerId) => {
+  return axios.request({
+    url: '/cis/controller/getAuthList',
+    data: controllerId,
+    method: 'post'
+  })
+}
 export const start = (id) => {
   return axios.request({
     url: '/cis/controller/start',

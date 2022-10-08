@@ -182,6 +182,10 @@ export default {
         },
         agreement: {
           cftp: 'CFTP'
+        },
+        join: {
+          user: 'User/Password',
+          certificate: 'Certificate/Password'
         }
       }
     }
@@ -195,7 +199,8 @@ export default {
       port: 'Port',
       agreementType: 'Agreement',
       controllerName: 'Adapter Name',
-      startTime: 'Start Time'
+      startTime: 'Start Time',
+      authType: 'Authentication Type'
     }
   }
 }
