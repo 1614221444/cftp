@@ -8,8 +8,12 @@ import com.createlt.agreement.codec.CFTPEncoder;
 import com.createlt.agreement.codec.CFTPMessage;
 import com.createlt.agreement.codec.DataHead;
 import com.createlt.cis.entity.CisAuthentication;
+import com.createlt.cis.entity.CisController;
 import com.createlt.cis.service.ICisAuthenticationService;
+import com.createlt.cis.service.ICisControllerService;
+import com.createlt.common.BaseController;
 import com.createlt.common.ToolSpring;
+import com.createlt.common.WebSocketServer;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
@@ -17,10 +21,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.util.concurrent.GlobalEventExecutor;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -52,14 +53,34 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
 
     private static Map<String, Client> localHelperMap = new HashMap<>();
 
+    private WebSocketServer webSocketServer;
+
     /**
      * 服务认证service
      */
     private ICisAuthenticationService cisAuthenticationService;
+
+    /**
+     * 客户端实例
+     */
+    private ICisControllerService cisControllerService;
+
+
+    /**
+     * 当前客户端实例ID
+     */
     String clientId = "";
-    public ClientHandler(String clientId) {
-        cisAuthenticationService = (ICisAuthenticationService)ToolSpring.getBean("cisAuthenticationServiceImpl");
+
+    /**
+     * 连接状态主动推送人
+     */
+    String userId = "";
+    public ClientHandler(String clientId,String userId) {
+        cisAuthenticationService = (ICisAuthenticationService) ToolSpring.getBean("cisAuthenticationServiceImpl");
+        cisControllerService = (ICisControllerService) ToolSpring.getBean("cisControllerServiceImpl");
+        webSocketServer = (WebSocketServer) ToolSpring.getBean("webSocketServer");
         this.clientId = clientId;
+        this.userId = userId;
     }
 
     //连接建立，初始化
@@ -137,12 +158,21 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
      * @Param [message]
      **/
     public void processAuth(CFTPMessage message) {
+        BaseController base = new BaseController();
         if ((Boolean) message.getMetaData().get("isSuccess")) {
-            System.out.println(this.getClass() + "\r\n 注册成功");
+            //System.out.println(this.getClass() + "\r\n 注册成功");
+            // 推送消息到发起人
+            webSocketServer.sendInfo(base.responseSuccess("客户端连接成功"), userId);
+            // 更新实例启动状态
+            CisController controller = cisControllerService.getById(clientId);
+            controller.setIsStart(true);
+            controller.setStartTime(new Date());
+            cisControllerService.updateById(controller);
         } else {
-            ctx.fireExceptionCaught(new Throwable());
+            //ctx.fireExceptionCaught(new Throwable());
             ctx.channel().close();
-            System.out.println(this.getClass() + "\r\n 注册失败，原因：" + message.getMetaData().get("reason"));
+            //System.out.println(this.getClass() + "\r\n 连接失败，原因：" + message.getMetaData().get("reason"));
+            webSocketServer.sendInfo(base.responseFail("连接失败，原因："+ message.getMetaData().get("reason")), userId);
         }
     }
 

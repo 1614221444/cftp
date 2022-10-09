@@ -1,4 +1,4 @@
-import { getList, save, del, getAuthList, start, stop } from '@/api/cis/controller'
+import { getList, save, del, getAuthList, start, stop, getServerUserList } from '@/api/cis/controller'
 
 export default {
   state: {
@@ -28,10 +28,10 @@ export default {
   },
   actions: {
     getCisControllerList ({ commit, rootState }, params) {
-      rootState.authentication.loading = true
+      rootState.controller.loading = true
       getList(params).then(res => {
         commit('controllerList', res.data)
-        rootState.authentication.loading = false
+        rootState.controller.loading = false
       }).catch(e => {
         console.log(e)
       })
@@ -56,6 +56,9 @@ export default {
     },
     stopCisController ({ commit, rootState }, id) {
       return stop(id)
+    },
+    getServerUserList({ commit, rootState }, id) {
+      return getServerUserList(id)
     }
   }
 }

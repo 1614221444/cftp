@@ -35,7 +35,7 @@ import static com.createlt.agreement.server.CftpServer.*;
 public class ServerHandler extends ChannelInboundHandlerAdapter {
 
     //在所有ServerHandler中共享当前在线的授权信息
-    private static Map<String, Integer> clients = new HashMap<>();
+    private Map<String, Integer> clients;
 
     //统一管理客户端channel和remote channel
     private static ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
@@ -71,16 +71,19 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
     private String serverId = "";
 
+    private String userId = "";
 
     /**
      * 服务认证service
      */
     private ICisAuthenticationService cisAuthenticationService;
 
-    public ServerHandler(String serverId) {
+    public ServerHandler(String serverId,Map<String, Integer> clients, String userId) {
         // 手动注入Spring认证类
         cisAuthenticationService = (ICisAuthenticationService) ToolSpring.getBean("cisAuthenticationServiceImpl");
         this.serverId = serverId;
+        this.clients = clients;
+        this.userId = userId;
     }
 
     /**
@@ -183,7 +186,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         if (flag) {
             //一个client-key只允许一个代理客户端使用
             if (isExist(clientKey)) {
-                System.out.println("不允许同一授权码重复登录\n");
+                // System.out.println("不允许同一授权码重复登录\n");
                 return false;
             }
             clients.put(clientKey, 1);
@@ -236,7 +239,12 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             }
         } else {
             metaData.put("isSuccess", false);
-            metaData.put("reason", "client-key不合法，请两分钟后重试");
+
+            if (isExist(clientKey)) {
+                metaData.put("reason", "不允许同一授权码重复登录");
+            } else {
+                metaData.put("reason", "client-key不合法，请两分钟后重试");
+            }
             System.out.println(this.getClass() + "\r\n 客户端注册失败，使用了不合法的clientKey，clientKey为：" + clientKey);
         }
 

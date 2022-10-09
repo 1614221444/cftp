@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.createlt.common.BaseController;
-import com.createlt.common.WebSocketServer;
 import com.createlt.sys.entity.SysNotice;
 import com.createlt.sys.entity.SysNoticeRole;
 import com.createlt.sys.service.ISysNoticeRoleService;
@@ -94,7 +93,7 @@ public class SysNoticeController extends BaseController {
      */
     @RequestMapping(value = "push")
     public String push(SysNotice notice) {
-        WebSocketServer.sendInfo("message","1");
+        //WebSocketServer.sendInfo("message","1");
         //sysNoticeService.push(notice);
         return responseSuccess();
     }

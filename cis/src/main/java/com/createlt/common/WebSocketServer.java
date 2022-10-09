@@ -115,7 +115,7 @@ public class WebSocketServer {
     /**
      * 群发自定义消息
      */
-    public static void sendInfo(String message,@PathParam("username") String username) {
+    public void sendInfo(String message,@PathParam("username") String username) {
         log.info("推送消息到窗口推送内容:" + message);
         backOrFrontSend(message,username,govWebSocketSet);
     }

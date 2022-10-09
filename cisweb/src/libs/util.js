@@ -557,6 +557,13 @@ export const error = () => {
   console.log("连接错误")
 }
 export const getMessage = (msg) => {
+  store.dispatch('getCisControllerList', store.state.controller.query)
+  let data = JSON.parse(msg.data)
+  if (data.code === 200) {
+    store.getters.Message.success(data.message)
+  } else {
+    store.getters.Message.error(data.message)
+  }
   store.state.socket.msg = msg.data
 }
 export const send = (params) => {

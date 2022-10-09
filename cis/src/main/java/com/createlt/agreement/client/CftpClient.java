@@ -6,12 +6,14 @@ import com.createlt.agreement.codec.CFTPDecoder;
 import com.createlt.agreement.codec.CFTPEncoder;
 import com.createlt.agreement.headler.ClientHandler;
 import com.createlt.agreement.headler.HeartBeatClientHandler;
+import com.createlt.sys.entity.SysUser;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.concurrent.TimeUnit;
 
@@ -36,7 +38,9 @@ public class CftpClient implements BaseClient {
     private EventLoopGroup workerGroup = new NioEventLoopGroup();
     @Override
     public void start(String ip, int port,String clientId) throws Exception {
-        clientHandler = new ClientHandler(clientId);
+        // 获取用户ID主动推送请求结果
+        SysUser user = (SysUser) SecurityContextHolder.getContext().getAuthentication() .getPrincipal();
+        clientHandler = new ClientHandler(clientId, user.getId());
         ChannelInitializer<SocketChannel> channelInitializer = new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel socketChannel) throws Exception {
@@ -56,6 +60,7 @@ public class CftpClient implements BaseClient {
             }
         };
         client.start(workerGroup, channelInitializer, ip, port);
+
     }
 
     @Override

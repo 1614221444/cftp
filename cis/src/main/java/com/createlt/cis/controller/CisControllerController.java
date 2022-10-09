@@ -12,13 +12,14 @@ import com.createlt.cis.entity.CisController;
 import com.createlt.cis.service.ICisAuthenticationService;
 import com.createlt.cis.service.ICisControllerService;
 import com.createlt.common.BaseController;
+import com.createlt.common.WebSocketServer;
+import com.createlt.sys.entity.SysUser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * <p>
@@ -45,10 +46,15 @@ public class CisControllerController extends BaseController {
      */
     public static Map<String, BaseClient> clientMap = new HashMap<>();
 
+
+    private WebSocketServer webSocketServer;
+
     @Autowired
-    public CisControllerController (ICisControllerService cisControllerService,ICisAuthenticationService cisAuthenticationService) {
+    public CisControllerController (ICisControllerService cisControllerService,ICisAuthenticationService cisAuthenticationService,
+                                    WebSocketServer webSocketServer) {
         this.cisControllerService = cisControllerService;
         this.cisAuthenticationService = cisAuthenticationService;
+        this.webSocketServer = webSocketServer;
     }
 
     /**
@@ -113,19 +119,26 @@ public class CisControllerController extends BaseController {
     @RequestMapping(value = "start")
     public String start(String id) {
         CisController controller = cisControllerService.getById(id);
-        controller.setIsStart(true);
         // 服务端启动
         if ("0".equals(controller.getServerType())) {
-            CftpServer server = new CftpServer();
+            controller.setIsStart(true);
+            BaseServer server = new CftpServer();
             try {
                 server.start(Integer.parseInt(controller.getPort()), id);
+                // 获取用户ID主动推送请求结果
+                SysUser user = (SysUser) SecurityContextHolder.getContext().getAuthentication() .getPrincipal();
+                // 推送消息到发起人
+                webSocketServer.sendInfo(responseSuccess("服务启动成功"), user.getId());
+                // 更新实例启动状态
+                controller.setStartTime(new Date());
+                cisControllerService.updateById(controller);
             } catch (Exception e) {
                 return responseFail(e.getMessage());
             }
             serverMap.put(id, server);
         } else {
             // 客户端启动
-            CftpClient client = new CftpClient();
+            BaseClient client = new CftpClient();
             try {
                 client.start(controller.getIp(), Integer.parseInt(controller.getPort()), id);
             } catch (Exception e) {
@@ -134,7 +147,6 @@ public class CisControllerController extends BaseController {
             }
             clientMap.put(id,client);
         }
-        cisControllerService.updateById(controller);
         return responseSuccess();
     }
 
@@ -161,6 +173,20 @@ public class CisControllerController extends BaseController {
         }
         cisControllerService.updateById(controller);
         return responseSuccess();
+    }
+
+    /**
+     * 查询服务在线人列表
+     * @param controllerId
+     * @return
+     */
+    @RequestMapping(value = "getServerUserList")
+    public String getUserList(String controllerId) {
+        List<String> users = new ArrayList<>();
+        if(serverMap.get(controllerId) != null) {
+            users = serverMap.get(controllerId).getUserList();
+        }
+        return getJson(users);
     }
 
     /**

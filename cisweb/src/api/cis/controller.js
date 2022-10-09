@@ -53,3 +53,11 @@ export const stop = (id) => {
     method: 'post'
   })
 }
+
+export const getServerUserList = (controllerId) => {
+  return axios.request({
+    url: '/cis/controller/getServerUserList',
+    data: { controllerId: controllerId },
+    method: 'post'
+  })
+}

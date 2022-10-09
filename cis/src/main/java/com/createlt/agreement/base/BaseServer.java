@@ -29,5 +29,5 @@ public interface BaseServer {
     /**
      * 查询连接用户
      */
-    List<String> getUser();
+    List<String> getUserList();
 }

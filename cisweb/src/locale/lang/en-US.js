@@ -170,25 +170,26 @@ export default {
       job: {
         start: 'Start',
         suspend: 'Suspend'
+      }
+    },
+    cis: {
+      start: {
+        auto: 'Auto',
+        manual: 'Manual'
       },
-      cis: {
-        start: {
-          auto: 'Auto',
-          manual: 'Manual'
-        },
-        server: {
-          service: 'Service',
-          client: 'Client'
-        },
-        agreement: {
-          cftp: 'CFTP'
-        },
-        join: {
-          user: 'User/Password',
-          certificate: 'Certificate/Password'
-        }
+      server: {
+        service: 'Service',
+        client: 'Client'
+      },
+      agreement: {
+        cftp: 'CFTP'
+      },
+      join: {
+        user: 'User/Password',
+        certificate: 'Certificate/Password'
       }
     }
+
   },
   // cis
   cis: {
@@ -200,7 +201,8 @@ export default {
       agreementType: 'Agreement',
       controllerName: 'Adapter Name',
       startTime: 'Start Time',
-      authType: 'Authentication Type'
+      authType: 'Authentication Type',
+      connectionUser: 'Connection User'
     }
   }
 }

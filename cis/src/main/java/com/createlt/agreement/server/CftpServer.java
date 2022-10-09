@@ -8,12 +8,14 @@ import com.createlt.agreement.codec.CFTPMessage;
 import com.createlt.agreement.codec.DataHead;
 import com.createlt.agreement.headler.HeartBeatHandler;
 import com.createlt.agreement.headler.ServerHandler;
+import com.createlt.sys.entity.SysUser;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -42,6 +44,10 @@ public class CftpServer implements BaseServer {
     private static final int ALL_IDLE_TIME = 0;
     private ServerHandler serverHandler;
     Server ser = new Server();
+
+
+    //在所有ServerHandler中共享当前在线的授权信息
+    private Map<String, Integer> clients = new HashMap<>();
     /**
      * 启动服务
      * @param port 监听端口
@@ -54,6 +60,8 @@ public class CftpServer implements BaseServer {
         bossGroup = new NioEventLoopGroup();
         workerGroup = new NioEventLoopGroup();
 
+        // 获取用户ID主动推送请求结果
+        SysUser user = (SysUser) SecurityContextHolder.getContext().getAuthentication() .getPrincipal();
         ChannelInitializer<SocketChannel> channelInitializer = new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel socketChannel) throws Exception {
@@ -67,7 +75,7 @@ public class CftpServer implements BaseServer {
                         //自定义协议编码器
                         new CFTPEncoder(),
                         //代理客户端连接代理服务器处理器
-                        serverHandler = new ServerHandler(serverId),
+                        serverHandler = new ServerHandler(serverId, clients, user.getId()),
                         //服务器心跳机制处理器
                         new HeartBeatHandler()
                 );
@@ -138,8 +146,11 @@ public class CftpServer implements BaseServer {
      * 获取在线用户
      */
     @Override
-    public List<String> getUser() {
+    public List<String> getUserList() {
         List<String> userList = new ArrayList<>();
+        clients.forEach((key, value) -> {
+            userList.add(key);
+        });
         return userList;
     }
 }

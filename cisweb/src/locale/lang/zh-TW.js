@@ -171,23 +171,23 @@ export default {
       job: {
         start: '启动',
         suspend: '暂停'
+      }
+    },
+    cis: {
+      start: {
+        auto: '自动',
+        manual: '手动'
       },
-      cis: {
-        start: {
-          auto: '自动',
-          manual: '手动'
-        },
-        server: {
-          service: '服务端',
-          client: '客户端'
-        },
-        agreement: {
-          cftp: 'CFTP'
-        },
-        join: {
-          user: '用户名/密码',
-          certificate: '证书/密码'
-        }
+      server: {
+        service: '服务端',
+        client: '客户端'
+      },
+      agreement: {
+        cftp: 'CFTP'
+      },
+      join: {
+        user: '用户名/密码',
+        certificate: '证书/密码'
       }
     }
   },
@@ -201,7 +201,8 @@ export default {
       agreementType: '协议',
       controllerName: '适配器名称',
       startTime: '上次启动时间',
-      authType: '认证类型'
+      authType: '认证类型',
+      connectionUser: '连接用户'
     }
   }
 }

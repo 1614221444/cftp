@@ -12,7 +12,7 @@ import java.util.Map;
  * 控制层基类
  */
 @ResponseBody
-public abstract class BaseController {
+public class BaseController {
     /**
      * 将对象转换成json
      * @param obj data
@@ -27,7 +27,7 @@ public abstract class BaseController {
      * @param message 自定义提示
      * @return
      */
-    protected String responseSuccess(String message) {
+    public String responseSuccess(String message) {
         Map<String,Object> map = new HashMap<>();
         map.put("code",200);
         map.put("message",message);
@@ -39,7 +39,7 @@ public abstract class BaseController {
      * 返回成功
      * @return
      */
-    protected String responseSuccess() {
+    public String responseSuccess() {
         return responseSuccess("操作成功");
     }
 
@@ -48,7 +48,7 @@ public abstract class BaseController {
      * @param message 自定义提示
      * @return
      */
-    protected String responseFail(String message) {
+    public String responseFail(String message) {
         Map<String,Object> map = new HashMap<>();
         map.put("code",501);
         map.put("message",message);
@@ -60,7 +60,7 @@ public abstract class BaseController {
      * 返回失败
      * @return
      */
-    protected String responseFail() {
+    public String responseFail() {
         return responseFail("操作失败");
     }
 }

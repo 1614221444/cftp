@@ -1,5 +1,6 @@
 <template>
-  <div data-menu="menu.cis.controller" class="split-pane-page-wrapper">
+  <div data-menu="menu.cis.controller"
+       :loading="$store.state.controller.loading" class="split-pane-page-wrapper">
     <Form inline  style="padding: 10px;margin-bottom: 20px;border: 2px solid #e8eaec;">
       <FormItem prop="roleName">
         <Input type="text" v-model="$store.state.controller.query.controllerName" :placeholder="$t('cis.controller.controllerName')">
@@ -30,7 +31,6 @@
     </Table>-->
 
     <Col span="8"
-         :loading="$store.state.controller.loading"
          v-for="(data, index) in $store.state.controller.controllerList"
          :key="index"
         class="server">
@@ -48,6 +48,7 @@
         <p class="server_text">{{$t('cis.controller.serverType')}}：{{$t($dict('SERVER_TYPE',data.serverType))}}</p>
         <p class="server_text">{{$t('cis.controller.startTime')}}：{{data.startTime}}</p>
         <p style="text-align: right">
+          <Icon v-if="data.serverType === '0' && data.isStart" @click="getServerUserList(data.id)" class="server_button server_status server_start" type="ios-contacts"></Icon>
           <Icon v-jurisdiction="'edit'" @click="info(data)" class="server_button server_status server_abnormal" type="ios-create"></Icon>
           <Icon v-jurisdiction="'del'" @click="delInit(data)" class="server_button server_status server_stop" type="ios-trash"></Icon>
         </p>
@@ -146,6 +147,15 @@
         <Button size="large" long v-jurisdiction="'edit'" type="primary" @click="save()">{{ $t('system.save') }}</Button>
       </div>
     </Drawer>
+    <Modal
+      v-model="serverUserLabel"
+      :title="$t('cis.controller.connectionUser') + '(' + serverUserList.length + ')'"
+      width="300">
+      <p v-for="(data,index) in serverUserList" style="font-size: 22px">
+        {{data}}
+        <Icon class="server_status server_start" type="ios-radio-button-on"></Icon>
+      </p>
+    </Modal>
   </div>
 </template>
 <script>
@@ -180,7 +190,9 @@ export default {
       columnsAuthList: [
         { title: this.$t('cis.authentication.user'), key: 'loginName' },
         { title: this.$t('cis.authentication.password'), key: 'password' }
-      ]
+      ],
+      serverUserLabel: false,
+      serverUserList: []
     }
   },
   methods: {
@@ -255,9 +267,10 @@ export default {
     start (data) {
       store.dispatch('startCisController', data.id).then(res => {
         if (res.data.code === 200) {
-          this.query()
-          this.$Message.success(this.$t('system.success'))
-          this.isInfo = false
+          this.$store.state.controller.loading = true
+          //this.query()
+          //this.$Message.success(this.$t('system.success'))
+          //this.isInfo = false
         } else {
           this.$Message.error(res.data.message)
         }
@@ -310,6 +323,18 @@ export default {
       this.$store.state.controller.info.authList = authList
       this.$forceUpdate()
       return authList
+    },
+    // 查询服务在线人数
+    getServerUserList (id) {
+      store.dispatch('getServerUserList', id).then(res => {
+        if (res.status === 200) {
+          this.serverUserLabel = true
+          this.serverUserList = res.data
+        } else {
+          this.serverUserLabel = false
+          this.$Message.error(res.data.message)
+        }
+      })
     }
   }
 }

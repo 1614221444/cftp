@@ -3,6 +3,7 @@ package com.createlt.config;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.createlt.sys.entity.SysUser;
 import org.apache.ibatis.reflection.MetaObject;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -38,11 +39,11 @@ public class MyMetaObjectHandler implements MetaObjectHandler {
      * @return 当前用户ID
      */
     private String getThisUser() {
-        SysUser user = (SysUser) SecurityContextHolder.getContext().getAuthentication() .getPrincipal();
-        if(user == null) {
-            user = new SysUser();
-            user.setId("匿名用户");
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth == null) {
+            return "null";
         }
+        SysUser user = (SysUser) auth.getPrincipal();
         return user.getUserName();
     }
 }
