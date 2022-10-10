@@ -1,6 +1,9 @@
 package com.createlt.agreement.headler;
 
 import com.createlt.agreement.codec.CFTPMessage;
+import com.createlt.cis.entity.CisController;
+import com.createlt.cis.service.ICisControllerService;
+import com.createlt.common.ToolSpring;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.EventLoopGroup;
@@ -9,10 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * @Description 客户端心跳机制处理器
- * @Author zhangjun
- * @Data 2020/5/26
- * @Time 21:16
+ * 客户端心跳处理器
  */
 
 public class HeartBeatClientHandler extends ChannelInboundHandlerAdapter {
@@ -22,15 +22,38 @@ public class HeartBeatClientHandler extends ChannelInboundHandlerAdapter {
 
     private EventLoopGroup workerGroup = null;
 
+    /**
+     * 客户端控制器实例
+     */
+    private String clientId = "";
+    /**
+     * 客户端实例
+     */
+    private ICisControllerService cisControllerService;
+
     public HeartBeatClientHandler() {
     }
 
-    public HeartBeatClientHandler(EventLoopGroup workerGroup) {
+    public HeartBeatClientHandler(EventLoopGroup workerGroup,String clientId) {
         this.workerGroup = workerGroup;
+        this.clientId = clientId;
+        cisControllerService = (ICisControllerService) ToolSpring.getBean("cisControllerServiceImpl");
     }
 
     //心跳包
     private static final CFTPMessage HEART_BEAT = new CFTPMessage(CFTPMessage.TYPE_KEEPALIVE);
+
+    @Override
+    public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
+        // 连接被关闭 同步到实例关闭
+        CisController controller = cisControllerService.getById(clientId);
+        controller.setIsStart(false);
+        cisControllerService.updateById(controller);
+        // 关闭线程
+        workerGroup.shutdownGracefully();
+        ctx.channel().close();
+        super.channelUnregistered(ctx);
+    }
 
     //客户端写超时事件发生会默认调用该方法
     @Override
@@ -41,6 +64,7 @@ public class HeartBeatClientHandler extends ChannelInboundHandlerAdapter {
         HEART_BEAT.setMetaData(map);
         HEART_BEAT.setData(new byte[55]);
         ctx.writeAndFlush(HEART_BEAT);
+        super.userEventTriggered(ctx,evt);
     }
 
     //异常处理，发生异常时直接关闭服务器连接(比如发送心跳失败，可能服务器下线了)

@@ -49,6 +49,8 @@ public class CftpServer implements BaseServer {
 
     //在所有ServerHandler中共享当前在线的授权信息
     private Map<String, Integer> clients = new HashMap<>();
+    EventLoopGroup bossGroup = new NioEventLoopGroup();
+    EventLoopGroup workerGroup  = new NioEventLoopGroup();
     /**
      * 启动服务
      * @param port 监听端口
@@ -56,10 +58,6 @@ public class CftpServer implements BaseServer {
      */
     @Override
     public void start(int port,String serverId) {
-        EventLoopGroup bossGroup = null;
-        EventLoopGroup workerGroup = null;
-        bossGroup = new NioEventLoopGroup();
-        workerGroup = new NioEventLoopGroup();
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         SysUser user = new SysUser();
         if(auth != null){
@@ -95,6 +93,8 @@ public class CftpServer implements BaseServer {
      */
     @Override
     public void stop() {
+        bossGroup.shutdownGracefully();
+        workerGroup.shutdownGracefully();
         ser.close();
     }
 

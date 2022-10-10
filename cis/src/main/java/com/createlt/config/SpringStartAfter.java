@@ -24,6 +24,10 @@ public class SpringStartAfter implements InitializingBean {
     private ICisControllerService cisControllerService;
     @Resource
     private ICisAuthenticationService cisAuthenticationService;
+
+    /**
+     * 初始化所有控制器
+     */
     @Override
     public void afterPropertiesSet() {
         // 所有控制器初始化

@@ -62,7 +62,7 @@ public class CftpClient implements BaseClient {
                         new CFTPEncoder(),
                         clientHandler,
                         //客户端心跳机制处理器
-                        new HeartBeatClientHandler(workerGroup)
+                        new HeartBeatClientHandler(workerGroup,clientId)
                 );
             }
         };
