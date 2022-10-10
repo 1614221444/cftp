@@ -64,10 +64,12 @@ spring:
           log-slow-sql: true
 logging:
   level:
-    root: info
+    root: INFO
   file:
     name: log/main.log
 mybatis-plus:
   global-config:
     db-config:
       logic-delete-field: delState # 全局逻辑删除的实体字段名
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

@@ -527,19 +527,21 @@ export const ergodicTree = (datas, fun) => {
     }
   }
 }
-
-
+let socket
 export const initSocket = () => {
-  if(typeof(WebSocket) === "undefined"){
-    alert("您的浏览器不支持实时同步信息")
-  }else{
-    let username = store.state.user.thisUser.id;// 获取登录用户
+  if (socket) {
+    socket.close()
+  }
+  if (typeof (WebSocket) === 'undefined') {
+    alert('您的浏览器不支持实时同步信息')
+  } else {
+    let username = store.state.user.thisUser.id // 获取登录用户
     let baseUrl = process.env.NODE_ENV === 'development' ? config.baseUrl.dev : config.baseUrl.pro
-    baseUrl = baseUrl.replace('https','ws')
-    baseUrl = baseUrl.replace('http','ws')
-    let path = baseUrl + "/websocket/" + username
+    baseUrl = baseUrl.replace('https', 'ws')
+    baseUrl = baseUrl.replace('http', 'ws')
+    let path = baseUrl + '/websocket/' + username
     // 实例化socket
-    let socket = new WebSocket(path)
+    socket = new WebSocket(path)
     // 监听socket连接
     socket.onopen = open
     // 监听socket错误信息
@@ -551,10 +553,10 @@ export const initSocket = () => {
 }
 
 export const open = () => {
-  console.log("socket连接成功")
+  console.log('socket连接成功')
 }
 export const error = () => {
-  console.log("连接错误")
+  console.log('连接错误')
 }
 export const getMessage = (msg) => {
   store.dispatch('getCisControllerList', store.state.controller.query)
@@ -570,5 +572,5 @@ export const send = (params) => {
   this.socket.send(params)
 }
 export const close = () => {
-  console.log("socket已经关闭")
+  console.log('socket已经关闭')
 }

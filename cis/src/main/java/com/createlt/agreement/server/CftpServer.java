@@ -15,6 +15,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.FileInputStream;
@@ -59,9 +60,14 @@ public class CftpServer implements BaseServer {
         EventLoopGroup workerGroup = null;
         bossGroup = new NioEventLoopGroup();
         workerGroup = new NioEventLoopGroup();
-
-        // 获取用户ID主动推送请求结果
-        SysUser user = (SysUser) SecurityContextHolder.getContext().getAuthentication() .getPrincipal();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        SysUser user = new SysUser();
+        if(auth != null){
+            user = (SysUser) auth.getPrincipal();
+        } else {
+            user.setId("start");
+        }
+        String userId = user.getId();
         ChannelInitializer<SocketChannel> channelInitializer = new ChannelInitializer<SocketChannel>() {
             @Override
             protected void initChannel(SocketChannel socketChannel) throws Exception {
@@ -75,7 +81,7 @@ public class CftpServer implements BaseServer {
                         //自定义协议编码器
                         new CFTPEncoder(),
                         //代理客户端连接代理服务器处理器
-                        serverHandler = new ServerHandler(serverId, clients, user.getId()),
+                        serverHandler = new ServerHandler(serverId, clients, userId),
                         //服务器心跳机制处理器
                         new HeartBeatHandler()
                 );

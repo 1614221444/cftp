@@ -8,6 +8,7 @@ import {
   updatePassword,
   getRoleList
 } from '@/api/user'
+import { initSocket } from '@/libs/util'
 
 export default {
   state: {
@@ -88,7 +89,7 @@ export default {
     },
     initInfo (state, data) {
       let ids = []
-      for(let i in data.roleList) {
+      for (let i in data.roleList) {
         ids.push(data.roleList[i].roleId)
       }
       data.roleList = ids
@@ -106,6 +107,7 @@ export default {
         }).then(res => {
           const data = res.data.data.principal
           commit('login', data)
+          initSocket()
           resolve(data)
         }).catch(err => {
           reject(err)

@@ -203,6 +203,11 @@ export default {
       startTime: 'Start Time',
       authType: 'Authentication Type',
       connectionUser: 'Connection User'
+    },
+    authentication: {
+      user: 'User Name',
+      certificate: 'Certificate',
+      password: 'Password'
     }
   }
 }

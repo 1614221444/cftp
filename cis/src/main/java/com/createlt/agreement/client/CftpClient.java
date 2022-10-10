@@ -13,6 +13,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.timeout.IdleStateHandler;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.concurrent.TimeUnit;
@@ -39,7 +40,13 @@ public class CftpClient implements BaseClient {
     @Override
     public void start(String ip, int port,String clientId) throws Exception {
         // 获取用户ID主动推送请求结果
-        SysUser user = (SysUser) SecurityContextHolder.getContext().getAuthentication() .getPrincipal();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        SysUser user = new SysUser();
+        if(auth != null){
+            user = (SysUser) auth.getPrincipal();
+        } else {
+            user.setId("start");
+        }
         clientHandler = new ClientHandler(clientId, user.getId());
         ChannelInitializer<SocketChannel> channelInitializer = new ChannelInitializer<SocketChannel>() {
             @Override

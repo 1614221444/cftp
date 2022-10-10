@@ -203,6 +203,11 @@ export default {
       startTime: '上次启动时间',
       authType: '认证类型',
       connectionUser: '连接用户'
+    },
+    authentication: {
+      user: '用户名',
+      certificate: '证书名',
+      password: '密码'
     }
   }
 }
