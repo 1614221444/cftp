@@ -155,7 +155,7 @@ export default {
       name: 'Join',
       controller: 'Controller',
       service: 'Service',
-      dao: 'Dao'
+      dao: 'Mapper'
     }
   },
   // dict
@@ -202,7 +202,8 @@ export default {
       controllerName: 'Adapter Name',
       startTime: 'Start Time',
       authType: 'Authentication Type',
-      connectionUser: 'Connection User'
+      connectionUser: 'Connection User',
+      send: 'Send'
     },
     authentication: {
       user: 'User Name',

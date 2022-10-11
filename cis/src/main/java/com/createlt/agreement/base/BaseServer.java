@@ -1,7 +1,5 @@
 package com.createlt.agreement.base;
 
-import com.createlt.agreement.headler.ServerHandler;
-
 import java.util.List;
 
 /**
@@ -23,8 +21,10 @@ public interface BaseServer {
 
     /**
      * 发送消息
+     * @ to 发送人(查询用户返回的字符串)
+     * @ data 发送数据
      */
-    void send(ServerHandler to, String data);
+    void send(String to, String data);
 
     /**
      * 查询连接用户

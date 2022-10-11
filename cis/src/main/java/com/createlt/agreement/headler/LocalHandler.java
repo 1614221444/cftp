@@ -38,7 +38,7 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
     public LocalHandler(ClientHandler client,CFTPMessage msg, boolean isSend, int i) {
         this.message = msg;
         this.isSend = isSend;
-        File file = new File("/Users/wuyh/Desktop/" + File.separator + this.message.getDataHead().getId());
+        File file = new File("/Users/wuyh/Desktop/DATA" + File.separator + this.message.getDataHead().getId());
         try {
             inChannel = new RandomAccessFile(file, "rw").getChannel();
         } catch (FileNotFoundException e) {

@@ -61,3 +61,12 @@ export const getServerUserList = (controllerId) => {
     method: 'post'
   })
 }
+
+export const send = (data) => {
+  return axios.request({
+    url: '/cis/controller/send',
+    data: data,
+    method: 'post'
+  })
+}
+

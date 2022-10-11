@@ -201,4 +201,21 @@ public class CisControllerController extends BaseController {
                 .eq(CisAuthentication::getControllerId, controllerId));
         return getJson(authList);
     }
+
+    /**
+     * 查询认证
+     *
+     * @param controllerId 外键ID
+     * @return 查询结果
+     */
+    @RequestMapping(value = "send")
+    public String send(String controllerId, String userId, String data) {
+        CisController controller = cisControllerService.getById(controllerId);
+        if("0".equals(controller.getServerType())) {
+            serverMap.get(controllerId).send(userId, data);
+        } else {
+            clientMap.get(controllerId).send(data);
+        }
+        return responseSuccess();
+    }
 }

@@ -1,4 +1,4 @@
-import { getList, save, del, getAuthList, start, stop, getServerUserList } from '@/api/cis/controller'
+import { getList, save, del, getAuthList, start, stop, getServerUserList, send } from '@/api/cis/controller'
 
 export default {
   state: {
@@ -59,6 +59,10 @@ export default {
     },
     getServerUserList({ commit, rootState }, id) {
       return getServerUserList(id)
+    },
+    sendFile({ commit, rootState }, sendInfo) {
+      let data = { controllerId: sendInfo.server.id, userId: sendInfo.to, data: sendInfo.file }
+      return send(data)
     }
   }
 }

@@ -35,7 +35,7 @@ import static com.createlt.agreement.server.CftpServer.*;
 public class ServerHandler extends ChannelInboundHandlerAdapter {
 
     //在所有ServerHandler中共享当前在线的授权信息
-    private Map<String, Integer> clients;
+    private Map<String, ServerHandler> clients;
 
     //统一管理客户端channel和remote channel
     private static ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
@@ -65,7 +65,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     public ChannelGroup getChannels() {
         return channels;
     }
-    public Map<String, Integer> getClients() {
+    public Map<String, ServerHandler> getClients() {
         return clients;
     }
 
@@ -78,7 +78,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
      */
     private ICisAuthenticationService cisAuthenticationService;
 
-    public ServerHandler(String serverId,Map<String, Integer> clients, String userId) {
+    public ServerHandler(String serverId,Map<String, ServerHandler> clients, String userId) {
         // 手动注入Spring认证类
         cisAuthenticationService = (ICisAuthenticationService) ToolSpring.getBean("cisAuthenticationServiceImpl");
         this.serverId = serverId;
@@ -189,7 +189,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                 // System.out.println("不允许同一授权码重复登录\n");
                 return false;
             }
-            clients.put(clientKey, 1);
+            clients.put(clientKey, this);
             this.clientKey = clientKey;
             return true;
         }
@@ -227,7 +227,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             try {
                 metaData.put("channelId", "123456789");
                 metaData.put("isSuccess", true);
-                clients.put(clientKey, 1);
+                clients.put(clientKey, this);
                 isRegister = true;
                 System.out.println(this.getClass() + "\r\n 客户端注册成功，clientKey为：" + clientKey);
             } catch (Exception e) {

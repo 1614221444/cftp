@@ -48,7 +48,9 @@
         <p class="server_text">{{$t('cis.controller.serverType')}}：{{$t($dict('SERVER_TYPE',data.serverType))}}</p>
         <p class="server_text">{{$t('cis.controller.startTime')}}：{{data.startTime}}</p>
         <p style="text-align: right">
-          <Icon v-if="data.serverType === '0' && data.isStart" @click="getServerUserList(data.id)" class="server_button server_status server_start" type="ios-contacts"></Icon>
+
+          <Icon v-if="data.serverType === '1' && data.isStart" class="server_button server_status" @click="sendInit(data)" type="ios-send" ></Icon>
+          <Icon v-if="data.serverType === '0' && data.isStart" @click="getServerUserList(data)" class="server_button server_status server_start" type="ios-contacts"></Icon>
           <Icon v-jurisdiction="'edit'" @click="info(data)" class="server_button server_status server_abnormal" type="ios-create"></Icon>
           <Icon v-jurisdiction="'del'" @click="delInit(data)" class="server_button server_status server_stop" type="ios-trash"></Icon>
         </p>
@@ -151,10 +153,22 @@
       v-model="serverUserLabel"
       :title="$t('cis.controller.connectionUser') + '(' + serverUserList.length + ')'"
       width="300">
-      <p v-for="(data,index) in serverUserList" style="font-size: 22px">
-        {{data}}
-        <Icon class="server_status server_start" type="ios-radio-button-on"></Icon>
-      </p>
+      <Row v-for="(data,index) in serverUserList" style="font-size: 22px">
+        <Col span="14">
+          {{data}}
+        </Col>
+        <Col span="10">
+          <Icon class="server_status server_start" type="ios-radio-button-on"></Icon>
+          <Icon class="server_status server_button" @click="sendInit(server, data)" type="ios-send" />
+        </Col>
+      </Row>
+    </Modal>
+    <Modal
+      v-model="send.label"
+      :title="$t('cis.controller.send') + '[' + send.to + ']'"
+      @on-ok="sendFile">
+      <Input v-model="send.file" />
+      <Progress :percent="45" :stroke-width="20" status="active" text-inside />
     </Modal>
   </div>
 </template>
@@ -192,7 +206,13 @@ export default {
         { title: this.$t('cis.authentication.password'), key: 'password' }
       ],
       serverUserLabel: false,
-      serverUserList: []
+      serverUserList: [],
+      send: {
+        server: {},
+        to: '',
+        label: false,
+        file: ''
+      }
     }
   },
   methods: {
@@ -325,9 +345,27 @@ export default {
       return authList
     },
     // 查询服务在线人数
-    getServerUserList (id) {
-      store.dispatch('getServerUserList', id).then(res => {
+    getServerUserList (data) {
+      store.dispatch('getServerUserList', data.id).then(res => {
         if (res.status === 200) {
+          this.server = data
+          this.serverUserLabel = true
+          this.serverUserList = res.data
+        } else {
+          this.serverUserLabel = false
+          this.$Message.error(res.data.message)
+        }
+      })
+    },
+    sendInit (controller, userId) {
+      this.send.label = true
+      this.send.server = controller
+      this.send.to = userId ? userId : controller.ip + ':' + controller.port
+    },
+    sendFile () {
+      store.dispatch('sendFile', this.send).then(res => {
+        if (res.status === 200) {
+          this.server = data
           this.serverUserLabel = true
           this.serverUserList = res.data
         } else {

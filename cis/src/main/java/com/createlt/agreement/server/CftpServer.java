@@ -47,8 +47,12 @@ public class CftpServer implements BaseServer {
     Server ser = new Server();
 
 
-    //在所有ServerHandler中共享当前在线的授权信息
-    private Map<String, Integer> clients = new HashMap<>();
+    /**
+     * 所有在线用户
+     * @Key 用户名
+     * @value 连接处理器实例
+     */
+    private Map<String, ServerHandler> clients = new HashMap<>();
     EventLoopGroup bossGroup = new NioEventLoopGroup();
     EventLoopGroup workerGroup  = new NioEventLoopGroup();
     /**
@@ -100,11 +104,12 @@ public class CftpServer implements BaseServer {
 
     /**
      * 发送信息
-     * @param to 发给谁
+     * @param user 发给谁
      * @param files 发啥玩意
      */
     @Override
-    public void send(ServerHandler to, String files) {
+    public void send(String user, String files) {
+        ServerHandler to =  clients.get(user);
         Thread send = new Thread(() -> {
             CFTPMessage HEART_BEAT;
             // String files = ConfigParser.getServerConfigFile() + "A.text";
@@ -127,7 +132,7 @@ public class CftpServer implements BaseServer {
                 metaData.put("fileName", "b.text");
                 metaData.put("url", files);
                 metaData.put("startDate", start);
-                metaData.put("clientKey", serverHandler.clientKey);
+                metaData.put("clientKey", to.clientKey);
                 HEART_BEAT.setMetaData(metaData);
                 DataHead data = new DataHead();
                 data.setId(UUID.randomUUID().toString());
@@ -137,7 +142,7 @@ public class CftpServer implements BaseServer {
                 data.setTotal((int) total);
                 data.setUrl(files);
                 HEART_BEAT.setDataHead(data);
-                serverHandler.processData(serverHandler.getCtx(),HEART_BEAT,true);
+                to.processData(to.getCtx(),HEART_BEAT,true);
 
             } catch (FileNotFoundException e) {
                 System.out.println(e.toString());

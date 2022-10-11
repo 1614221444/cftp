@@ -202,7 +202,8 @@ export default {
       controllerName: '适配器名称',
       startTime: '上次启动时间',
       authType: '认证类型',
-      connectionUser: '连接用户'
+      connectionUser: '连接用户',
+      send: '发送'
     },
     authentication: {
       user: '用户名',

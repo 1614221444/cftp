@@ -71,5 +71,5 @@ mybatis-plus:
   global-config:
     db-config:
       logic-delete-field: delState # 全局逻辑删除的实体字段名
-  configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  #configuration:
+  #  log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
