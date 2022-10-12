@@ -22,9 +22,10 @@ public interface BaseServer {
     /**
      * 发送消息
      * @ to 发送人(查询用户返回的字符串)
+     * @ file id 发送ID
      * @ data 发送数据
      */
-    void send(String to, String data);
+    void send(String to,String fileId, String data);
 
     /**
      * 查询连接用户

@@ -11,6 +11,7 @@ import com.createlt.cis.entity.CisAuthentication;
 import com.createlt.cis.entity.CisController;
 import com.createlt.cis.service.ICisAuthenticationService;
 import com.createlt.cis.service.ICisControllerService;
+import com.createlt.cis.service.ICisSendLogService;
 import com.createlt.common.BaseController;
 import com.createlt.common.WebSocketServer;
 import com.createlt.sys.entity.SysUser;
@@ -36,6 +37,8 @@ public class CisControllerController extends BaseController {
     private ICisControllerService cisControllerService;
     private ICisAuthenticationService cisAuthenticationService;
 
+    private ICisSendLogService cisSendLogService;
+
     /**
      * 服务器池
      */
@@ -51,10 +54,11 @@ public class CisControllerController extends BaseController {
 
     @Autowired
     public CisControllerController (ICisControllerService cisControllerService,ICisAuthenticationService cisAuthenticationService,
-                                    WebSocketServer webSocketServer) {
+                                    WebSocketServer webSocketServer,ICisSendLogService cisSendLogService) {
         this.cisControllerService = cisControllerService;
         this.cisAuthenticationService = cisAuthenticationService;
         this.webSocketServer = webSocketServer;
+        this.cisSendLogService = cisSendLogService;
     }
 
     /**
@@ -211,10 +215,14 @@ public class CisControllerController extends BaseController {
     @RequestMapping(value = "send")
     public String send(String controllerId, String userId, String data) {
         CisController controller = cisControllerService.getById(controllerId);
+        String sendId = UUID.randomUUID().toString();
+
         if("0".equals(controller.getServerType())) {
-            serverMap.get(controllerId).send(userId, data);
+            serverMap.get(controllerId).send(userId, sendId, data);
         } else {
             clientMap.get(controllerId).send(data);
+            /*log.setSendId(controller.getId());
+            log.setReceiverId(controller.getIp() + ":" + controller.getPort());*/
         }
         return responseSuccess();
     }

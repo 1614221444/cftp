@@ -2,6 +2,11 @@ package com.createlt.agreement.headler;
 
 import com.createlt.agreement.codec.CFTPMessage;
 import com.createlt.agreement.codec.DataHead;
+import com.createlt.cis.entity.CisSendLog;
+import com.createlt.cis.service.ICisSendLogService;
+import com.createlt.common.BaseController;
+import com.createlt.common.ToolSpring;
+import com.createlt.common.WebSocketServer;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
@@ -9,7 +14,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.util.*;
+import java.util.List;
 
 /**
  * 数据传输处理器
@@ -32,12 +37,27 @@ public class RemoteHandler extends ChannelInboundHandlerAdapter {
     // 百分比进度权值
     private int weight = 0;
 
-    public RemoteHandler(ServerHandler serverHandler, int remotePort, CFTPMessage message, boolean isSend) {
+    /**
+     * log
+     */
+    private ICisSendLogService cisSendLogService;
+
+    /**
+     * 进度
+     */
+    public int progress = 1;
+    private WebSocketServer webSocketServer;
+    CisSendLog log = new CisSendLog();
+
+    public RemoteHandler(ServerHandler serverHandler, int remotePort, CFTPMessage message, boolean isSend,WebSocketServer webSocketServer) {
+        cisSendLogService = (ICisSendLogService) ToolSpring.getBean("cisSendLogServiceImpl");
+        this.webSocketServer = webSocketServer;
         this.serverHandler = serverHandler;
         this.remotePort = remotePort;
         this.message = message;
         this.isSend = isSend;
         this.i = message.getDataHead().getIndex();
+        initLog(message);
 
         File file = new File("/Users/wuyh/Desktop/" + File.separator + this.message.getDataHead().getId());
         try {
@@ -47,6 +67,15 @@ public class RemoteHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
+    private void initLog(CFTPMessage message) {
+        log.setSendId(serverHandler.getServerId());
+        log.setFileId(message.getDataHead().getUrl());
+        log.setReceiverId(serverHandler.getClientKey());
+        log.setFileSize((double) message.getDataHead().getFileSize());
+        log.setProgress(progress);
+        // 记录发送状态
+        cisSendLogService.save(log);
+    }
 
 
     //连接一天内未关闭则直接关闭
@@ -225,14 +254,32 @@ public class RemoteHandler extends ChannelInboundHandlerAdapter {
      *
      * @param message 进度参数
      */
-    private void progress(DataHead message) {
+    public void progress(DataHead message) {
         this.message.getDataHead().setIndex(message.getIndex());
+        progress++;
+        log.setProgress(progress);
         System.out.print("|");
+        // 推送消息到发起人
+        BaseController base = new BaseController();
+        webSocketServer.sendInfo(base.getJson(log));
+
+    }
+
+    /**
+     * 回执进度 固定进度
+     *
+     * @param progress 进度参数
+     */
+    public void progress(int progress) {
+        log.setProgress(progress);
+        // 推送消息到发起人
+        BaseController base = new BaseController();
+        webSocketServer.sendInfo(base.getJson(log));
 
     }
 
     private void readyReceive(CFTPMessage message) {
-        File file = new File("/Users/wuyh/Desktop/");
+        File file = new File("/Users/wuyh/Desktop/DATA");
         if (!file.exists()) {//如果文件夹不存在
             file.mkdir();//创建文件夹
         }

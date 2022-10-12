@@ -113,11 +113,20 @@ public class WebSocketServer {
     }
 
     /**
-     * 群发自定义消息
+     * 指定用户发自定义消息
      */
     public void sendInfo(String message,@PathParam("username") String username) {
         log.info("推送消息到窗口推送内容:" + message);
         backOrFrontSend(message,username,govWebSocketSet);
+    }
+
+    /**
+     * 群发自定义消息
+     */
+    public void sendInfo(String message) {
+        govUserSessions.forEach((key,value) -> {
+            backOrFrontSend(message,key,govWebSocketSet);
+        });
     }
 
     private static void backOrFrontSend(String message, @PathParam("username") String username,CopyOnWriteArraySet<WebSocketServer> govWebSocketSet) {

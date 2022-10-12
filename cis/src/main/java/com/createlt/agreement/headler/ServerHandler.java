@@ -9,6 +9,7 @@ import com.createlt.agreement.codec.DataHead;
 import com.createlt.cis.entity.CisAuthentication;
 import com.createlt.cis.service.ICisAuthenticationService;
 import com.createlt.common.ToolSpring;
+import com.createlt.common.WebSocketServer;
 import io.netty.channel.*;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.ChannelMatcher;
@@ -73,6 +74,38 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
     private String userId = "";
 
+    private WebSocketServer webSocketServer;
+
+    /**
+     * 所有数据传输线程
+     * @return
+     */
+    private Map<String, RemoteHandler> dataHandler = new HashMap<>();
+
+    public String getServerId() {
+        return serverId;
+    }
+
+    public void setServerId(String serverId) {
+        this.serverId = serverId;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public String getClientKey() {
+        return clientKey;
+    }
+
+    public void setClientKey(String clientKey) {
+        this.clientKey = clientKey;
+    }
+
     /**
      * 服务认证service
      */
@@ -81,6 +114,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     public ServerHandler(String serverId,Map<String, ServerHandler> clients, String userId) {
         // 手动注入Spring认证类
         cisAuthenticationService = (ICisAuthenticationService) ToolSpring.getBean("cisAuthenticationServiceImpl");
+        webSocketServer = (WebSocketServer) ToolSpring.getBean("webSocketServer");
         this.serverId = serverId;
         this.clients = clients;
         this.userId = userId;
@@ -286,6 +320,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         if (DataHead.RECEIVE_END == message.getDataHead().getType()){
             String key = message.getDataHead().getId();
             System.out.println("\n数据传输完成 通道已关闭 数据通道id：" + key);
+            dataHandler.get(key).progress(100);
             dataPortClose(key);
 
             List<CFTPMessage> messages = clientDataIds.get(clientKey);
@@ -297,15 +332,6 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
                 }
             }
             messages.remove(remove);
-            ServerHandler server = this;
-            /*Timer timer = new Timer();
-            timer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    Send send = new Send(server,"/Users/wuyh/Desktop/FTP/A/a.text");
-                    send.run();
-                }
-            }, 5000);*/
             return;
         }
         // 创建文件传输端口
@@ -318,7 +344,8 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         ChannelInitializer channelInitializer = new ChannelInitializer() {
             @Override
             protected void initChannel(Channel channel) {
-                RemoteHandler remoteHandler = new RemoteHandler(serverHandler, port, message, isSend);
+                RemoteHandler remoteHandler = new RemoteHandler(serverHandler, port, message, isSend, webSocketServer);
+                dataHandler.put(message.getDataHead().getId(), remoteHandler);
                 channel.pipeline().addLast(
                         //设置按天触发事件(如果连接一天未关闭则强制关闭)
                         new IdleStateHandler(1,0,0, TimeUnit.DAYS),
@@ -366,6 +393,7 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
             workerGroup.get(id).shutdownGracefully();
             bossGroup.remove(id);
             workerGroup.remove(id);
+            dataHandler.remove(id);
         }
     }
 

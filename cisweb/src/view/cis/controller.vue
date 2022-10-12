@@ -152,12 +152,18 @@
     <Modal
       v-model="serverUserLabel"
       :title="$t('cis.controller.connectionUser') + '(' + serverUserList.length + ')'"
-      width="300">
+      width="400">
       <Row v-for="(data,index) in serverUserList" style="font-size: 22px">
-        <Col span="14">
+        <Col span="10">
           {{data}}
         </Col>
-        <Col span="10">
+        <Col span="10" v-if="send.server.id && $store.state.controller.sendList[send.server.id] && $store.state.controller.sendList[send.server.id][data]">
+          <Tooltip v-for="(data,index) in $store.state.controller.sendList[send.server.id][data]"
+            :content="data.fileId" placement="top" style="width: 100%;">
+            <Progress :percent="data.progress" :stroke-width="20" status="active" text-inside />
+          </Tooltip>
+        </Col>
+        <Col span="4">
           <Icon class="server_status server_start" type="ios-radio-button-on"></Icon>
           <Icon class="server_status server_button" @click="sendInit(server, data)" type="ios-send" />
         </Col>
@@ -211,7 +217,7 @@ export default {
         server: {},
         to: '',
         label: false,
-        file: ''
+        file: '/Users/wuyh/Desktop/SCCP.pptx'
       }
     }
   },
@@ -363,16 +369,7 @@ export default {
       this.send.to = userId ? userId : controller.ip + ':' + controller.port
     },
     sendFile () {
-      store.dispatch('sendFile', this.send).then(res => {
-        if (res.status === 200) {
-          this.server = data
-          this.serverUserLabel = true
-          this.serverUserList = res.data
-        } else {
-          this.serverUserLabel = false
-          this.$Message.error(res.data.message)
-        }
-      })
+      store.dispatch('sendFile', this.send)
     }
   }
 }

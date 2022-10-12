@@ -28,7 +28,7 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
     private ClientHandler client;
     // 单次读最大数据（字节）
     private int readMax = 20480;
-    private int weight = 0;
+    private int weight = 1;
     //数据通道
     private FileChannel inChannel;
 
@@ -175,13 +175,14 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
         buffer.put(message.getData());
 
         //计算进度
-        float progress = (float) message.getIndex() / ((float) this.message.getDataHead().getTotal() * 100);
+        float progress = (float) message.getIndex() / (float) this.message.getDataHead().getTotal() * 100;
         //进度每过百分之一回传一次进度
-        if(weight > progress) {
+        if(weight < progress) {
             CFTPMessage retn = new CFTPMessage();
             retn.setType(CFTPMessage.TYPE_DATA);
             DataHead dataHead = new DataHead();
             dataHead.setType(DataHead.PROGRESS);
+            dataHead.setIndex(message.getIndex());
             dataHead.setIndex(message.getIndex());
             retn.setDataHead(dataHead);
             localCtx.writeAndFlush(retn);

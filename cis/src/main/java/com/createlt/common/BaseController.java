@@ -18,7 +18,7 @@ public class BaseController {
      * @param obj data
      * @return json
      */
-    protected String getJson(Object obj) {
+    public String getJson(Object obj) {
         return JSON.toJSONStringWithDateFormat(obj,"yyyy-MM-dd HH:mm:ss");
     }
 
@@ -63,4 +63,5 @@ public class BaseController {
     public String responseFail() {
         return responseFail("操作失败");
     }
+
 }

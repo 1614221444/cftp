@@ -561,12 +561,17 @@ export const error = () => {
 export const getMessage = (msg) => {
   store.dispatch('getCisControllerList', store.state.controller.query)
   let data = JSON.parse(msg.data)
+  store.state.socket.msg = msg.data
+  // 判断传输内容是否为进度
+  if (data.progress) {
+    store.dispatch('setProgress', data)
+    return
+  }
   if (data.code === 200) {
     store.getters.Message.success(data.message)
   } else {
     store.getters.Message.error(data.message)
   }
-  store.state.socket.msg = msg.data
 }
 export const send = (params) => {
   this.socket.send(params)

@@ -105,10 +105,11 @@ public class CftpServer implements BaseServer {
     /**
      * 发送信息
      * @param user 发给谁
+     * @param fileId 发送ID
      * @param files 发啥玩意
      */
     @Override
-    public void send(String user, String files) {
+    public void send(String user,String fileId, String files) {
         ServerHandler to =  clients.get(user);
         Thread send = new Thread(() -> {
             CFTPMessage HEART_BEAT;
@@ -135,7 +136,7 @@ public class CftpServer implements BaseServer {
                 metaData.put("clientKey", to.clientKey);
                 HEART_BEAT.setMetaData(metaData);
                 DataHead data = new DataHead();
-                data.setId(UUID.randomUUID().toString());
+                data.setId(fileId);
                 data.setIndex(0);
                 data.setFileName("b.text");
                 data.setFileSize((int) fileSize);
