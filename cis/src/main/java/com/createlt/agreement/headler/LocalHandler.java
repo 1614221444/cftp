@@ -2,6 +2,10 @@ package com.createlt.agreement.headler;
 
 import com.createlt.agreement.codec.CFTPMessage;
 import com.createlt.agreement.codec.DataHead;
+import com.createlt.cis.entity.CisSendLog;
+import com.createlt.cis.service.ICisSendLogService;
+import com.createlt.common.BaseController;
+import com.createlt.common.ToolSpring;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
@@ -31,11 +35,37 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
     private int weight = 1;
     //数据通道
     private FileChannel inChannel;
+    /**
+     * log
+     */
+    private ICisSendLogService cisSendLogService;
+
+
+    private double progress;
+    CisSendLog log = new CisSendLog();
 
     public LocalHandler(ClientHandler client,CFTPMessage msg, boolean isSend) {
         this(client,msg,isSend,0);
     }
+
+
+    private void initLog(CFTPMessage message) {
+        log.setFileId(message.getDataHead().getUrl());
+        if (this.isSend) {
+            log.setSendId(client.clientId);
+            log.setReceiverId(client.getController().getIp() + ":" + client.getController().getPort());
+        } else {
+            log.setSendId(client.getController().getIp() + ":" + client.getController().getPort());
+            log.setReceiverId(client.clientId);
+        }
+        log.setFileSize((double) message.getDataHead().getFileSize() / 1000);
+        log.setProgress(0);
+        // 记录发送状态
+        cisSendLogService.save(log);
+    }
+
     public LocalHandler(ClientHandler client,CFTPMessage msg, boolean isSend, int i) {
+        cisSendLogService = (ICisSendLogService) ToolSpring.getBean("cisSendLogServiceImpl");
         this.message = msg;
         this.isSend = isSend;
         File file = new File("/Users/wuyh/Desktop/DATA" + File.separator + this.message.getDataHead().getId());
@@ -46,6 +76,7 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
         }
         this.i = i;
         this.client = client;
+        initLog(msg);
     }
 
     public ChannelHandlerContext getLocalCtx() {
@@ -156,6 +187,12 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
                 message.setDataHead(dataHead);
                 ctx.writeAndFlush(message);
                 buffer.clear();
+
+                //进度每过百分之一回传一次进度
+                if (weight < (float) i / (float) total * 100) {
+                    progress(message.getDataHead());
+                    weight++;
+                }
             }
         } catch (IOException e) {
             System.out.println(e.toString());
@@ -216,7 +253,24 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
      * @param message 进度参数
      */
     private void progress(DataHead message) {
-        System.out.print("|");
+        this.message.getDataHead().setIndex(message.getIndex());
+        progress += 0.5;
+        log.setProgress((int) progress);
+        // 推送消息到发起人
+        BaseController base = new BaseController();
+        client.getWebSocketServer().sendInfo(base.getJson(log));
+
+    }
+    /**
+     * 回执进度 固定进度
+     *
+     * @param progress 进度参数
+     */
+    public void progress(int progress) {
+        log.setProgress(progress);
+        // 推送消息到发起人
+        BaseController base = new BaseController();
+        client.getWebSocketServer().sendInfo(base.getJson(log));
 
     }
 

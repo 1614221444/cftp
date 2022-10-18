@@ -48,22 +48,22 @@
         <p class="server_text">{{$t('cis.controller.serverType')}}：{{$t($dict('SERVER_TYPE',data.serverType))}}</p>
         <p class="server_text">{{$t('cis.controller.startTime')}}：{{data.startTime}}</p>
         <p style="text-align: right">
-
           <Icon v-if="data.serverType === '1' && data.isStart" class="server_button server_status" @click="sendInit(data)" type="ios-send" ></Icon>
           <Icon v-if="data.serverType === '0' && data.isStart" @click="getServerUserList(data)" class="server_button server_status server_start" type="ios-contacts"></Icon>
           <Icon v-jurisdiction="'edit'" @click="info(data)" class="server_button server_status server_abnormal" type="ios-create"></Icon>
           <Icon v-jurisdiction="'del'" @click="delInit(data)" class="server_button server_status server_stop" type="ios-trash"></Icon>
         </p>
-
       </Card>
+      <Progress  v-if="data.serverType === '1' && $store.state.controller.sendList[data.id]" style="position: absolute;bottom: -7px;width: 98%;"
+                 :percent="$store.state.controller.sendList[data.id].progress" :stroke-width="4" hide-info />
     </Col>
     <div style="width: 300px;">
       <Page
         @on-change="changePage"
         @on-page-size-change="changeSizePage"
-        :page-size="$store.state.controller.query.singlePage"
+        :page-size="$store.state.controller.query.size"
         :total="$store.state.controller.query.totalNumber"
-        :current="$store.state.controller.query.pageNumber"
+        :current="$store.state.controller.query.current"
         :page-size-opts="[20,40,60,80,100]"
         style="text-align: right;margin-top: 5px;"
         show-total show-sizer >
@@ -153,12 +153,12 @@
       v-model="serverUserLabel"
       :title="$t('cis.controller.connectionUser') + '(' + serverUserList.length + ')'"
       width="400">
-      <Row v-for="(data,index) in serverUserList" style="font-size: 22px">
+      <Row v-for="(data,index) in serverUserList" style="font-size: 22px" :key="index">
         <Col span="10">
           {{data}}
         </Col>
         <Col span="10" v-if="send.server.id && $store.state.controller.sendList[send.server.id] && $store.state.controller.sendList[send.server.id][data]">
-          <Tooltip v-for="(data,index) in $store.state.controller.sendList[send.server.id][data]"
+          <Tooltip v-for="data in $store.state.controller.sendList[send.server.id][data]" :key="data.id"
             :content="data.fileId" placement="top" style="width: 100%;">
             <Progress :percent="data.progress" :stroke-width="20" status="active" text-inside />
           </Tooltip>
@@ -174,7 +174,6 @@
       :title="$t('cis.controller.send') + '[' + send.to + ']'"
       @on-ok="sendFile">
       <Input v-model="send.file" />
-      <Progress :percent="45" :stroke-width="20" status="active" text-inside />
     </Modal>
   </div>
 </template>
@@ -217,7 +216,7 @@ export default {
         server: {},
         to: '',
         label: false,
-        file: '/Users/wuyh/Desktop/SCCP.pptx'
+        file: '/Users/wuyh/work/中行金网/FTP/A/b.text'
       }
     }
   },
@@ -259,7 +258,7 @@ export default {
       store.dispatch('getCisControllerList', this.$store.state.controller.query)
     },
     info (row) {
-      store.dispatch('getAuthList', {controllerId: row.id}).then((res) => {
+      store.dispatch('getAuthList', { controllerId: row.id }).then((res) => {
         row.authListCsv = this.getAuthList(res.data)
         row.authList = this.setAuthList(null, row.authListCsv, row.authType)
         store.dispatch('getCisController', row)
@@ -267,12 +266,12 @@ export default {
       this.isInfo = true
     },
     changePage (pageNumber) {
-      this.$store.state.controller.query.pageNumber = pageNumber
+      this.$store.state.controller.query.current = pageNumber
       this.query()
     },
     changeSizePage (pageSizeNumber) {
-      this.$store.state.controller.query.pageNumber = 1
-      this.$store.state.controller.query.singlePage = pageSizeNumber
+      this.$store.state.controller.query.current = 1
+      this.$store.state.controller.query.size = pageSizeNumber
       this.query()
     },
     /**
@@ -294,9 +293,9 @@ export default {
       store.dispatch('startCisController', data.id).then(res => {
         if (res.data.code === 200) {
           this.$store.state.controller.loading = true
-          //this.query()
-          //this.$Message.success(this.$t('system.success'))
-          //this.isInfo = false
+          // this.query()
+          // this.$Message.success(this.$t('system.success'))
+          // this.isInfo = false
         } else {
           this.$Message.error(res.data.message)
         }
@@ -318,19 +317,19 @@ export default {
     getAuthList (authenticationList) {
       let authListCsv = ''
       for (let data in authenticationList) {
-        authListCsv += authenticationList[data].loginName + ',' + authenticationList[data].password+ ',\n'
+        authListCsv += authenticationList[data].loginName + ',' + authenticationList[data].password + ',\n'
       }
       return authListCsv
     },
     setAuthList (_this, data, authType) {
-      if(_this) {
+      if (_this) {
         data = _this.target.value
         authType = this.$store.state.controller.info.authType
       }
       if (data.substring(data.length - 1, data.length) !== ',') {
         data += ','
       }
-      data = data.replaceAll('\n','')
+      data = data.replaceAll('\n', '')
       let csv = data.split(',')
       let title = ['loginName', 'password']
       let authList = []
@@ -366,7 +365,7 @@ export default {
     sendInit (controller, userId) {
       this.send.label = true
       this.send.server = controller
-      this.send.to = userId ? userId : controller.ip + ':' + controller.port
+      this.send.to = userId !== null ? userId : controller.ip + ':' + controller.port
     },
     sendFile () {
       store.dispatch('sendFile', this.send)
@@ -414,5 +413,8 @@ export default {
   }
   .client{
     background-color: #ebde8d;
+  }
+  .ivu-progress-outer {
+    margin-top: -9px;
   }
 </style>

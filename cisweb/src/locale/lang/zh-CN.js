@@ -156,7 +156,8 @@ export default {
       name: '连接管理',
       controller: '适配器',
       service: '解析器',
-      dao: '映射器'
+      dao: '映射器',
+      joinLog: '消息日志'
     }
   },
   // dict
@@ -211,6 +212,14 @@ export default {
       user: '用户名',
       certificate: '证书名',
       password: '密码'
+    },
+    joinLog: {
+      fileId: '文件名称',
+      fileSize: '文件质量',
+      sendId: '发送人',
+      receiverId: '接收人',
+      progress: '进度',
+      sendDate: '发送时间'
     }
   }
 }

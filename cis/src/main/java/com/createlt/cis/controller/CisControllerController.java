@@ -75,6 +75,18 @@ public class CisControllerController extends BaseController {
         return getJson(page);
     }
 
+    /**
+     * 不分页查询列表
+     *
+     * @param controller 控制器实体
+     */
+    @RequestMapping(value = "listAll")
+    public String listAll(CisController controller) {
+        List<CisController> page = cisControllerService.list(new LambdaQueryWrapper<CisController>()
+                .eq(!StringUtils.isEmpty(controller.getControllerName()), CisController::getControllerName, controller.getControllerName()));
+        return getJson(page);
+    }
+
 
     /**
      * 保存控制器
@@ -220,7 +232,7 @@ public class CisControllerController extends BaseController {
         if("0".equals(controller.getServerType())) {
             serverMap.get(controllerId).send(userId, sendId, data);
         } else {
-            clientMap.get(controllerId).send(data);
+            clientMap.get(controllerId).send(sendId, data);
             /*log.setSendId(controller.getId());
             log.setReceiverId(controller.getIp() + ":" + controller.getPort());*/
         }

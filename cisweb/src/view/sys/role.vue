@@ -30,9 +30,9 @@
     <Page
       @on-change="changePage"
       @on-page-size-change="changeSizePage"
-      :page-size="$store.state.role.query.singlePage"
+      :page-size="$store.state.role.query.size"
       :total="$store.state.role.query.totalNumber"
-      :current="$store.state.role.query.pageNumber"
+      :current="$store.state.role.query.current"
       :page-size-opts="[20,40,60,80,100]"
       style="text-align: right;margin-top: 5px;"
       show-total show-sizer >
@@ -144,12 +144,12 @@ export default {
       this.isInfo = true
     },
     changePage (pageNumber) {
-      this.$store.state.menu.query.pageNumber = pageNumber
+      this.$store.state.menu.query.current = pageNumber
       this.query()
     },
     changeSizePage (pageSizeNumber) {
-      this.$store.state.menu.query.pageNumber = 1
-      this.$store.state.menu.query.singlePage = pageSizeNumber
+      this.$store.state.menu.query.current = 1
+      this.$store.state.menu.query.size = pageSizeNumber
       this.query()
     },
     renderContent (h, { root, node, data }) {

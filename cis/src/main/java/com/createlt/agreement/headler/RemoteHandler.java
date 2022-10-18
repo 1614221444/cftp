@@ -45,7 +45,7 @@ public class RemoteHandler extends ChannelInboundHandlerAdapter {
     /**
      * 进度
      */
-    public int progress = 1;
+    public double progress = 1;
     private WebSocketServer webSocketServer;
     CisSendLog log = new CisSendLog();
 
@@ -59,7 +59,7 @@ public class RemoteHandler extends ChannelInboundHandlerAdapter {
         this.i = message.getDataHead().getIndex();
         initLog(message);
 
-        File file = new File("/Users/wuyh/Desktop/" + File.separator + this.message.getDataHead().getId());
+        File file = new File("/Users/wuyh/Desktop/DATA" + File.separator + this.message.getDataHead().getId());
         try {
             inChannel = new RandomAccessFile(file, "rw").getChannel();
         } catch (FileNotFoundException e) {
@@ -68,11 +68,17 @@ public class RemoteHandler extends ChannelInboundHandlerAdapter {
     }
 
     private void initLog(CFTPMessage message) {
-        log.setSendId(serverHandler.getServerId());
+
+        if (this.isSend) {
+            log.setSendId(serverHandler.getServerId());
+            log.setReceiverId(serverHandler.getClientKey());
+        } else {
+            log.setSendId(serverHandler.getClientKey());
+            log.setReceiverId(serverHandler.getServerId());
+        }
         log.setFileId(message.getDataHead().getUrl());
-        log.setReceiverId(serverHandler.getClientKey());
-        log.setFileSize((double) message.getDataHead().getFileSize());
-        log.setProgress(progress);
+        log.setFileSize((double) message.getDataHead().getFileSize() / 1000);
+        log.setProgress((int) progress);
         // 记录发送状态
         cisSendLogService.save(log);
     }
@@ -198,6 +204,12 @@ public class RemoteHandler extends ChannelInboundHandlerAdapter {
                 mes.setDataHead(dataHead);
                 ctx.writeAndFlush(mes);
                 buffer.clear();
+                float progress = (float) i / (float) this.message.getDataHead().getTotal() * 100;
+                //进度每过百分之一回传一次进度
+                if(weight < progress) {
+                    weight++;
+                    progress(dataHead);
+                }
             }
         } catch (IOException e) {
             System.out.println(e.toString());
@@ -227,9 +239,8 @@ public class RemoteHandler extends ChannelInboundHandlerAdapter {
             weight++;
             retn.setDataHead(dataHead);
             ctx.writeAndFlush(retn);
+            progress(message.getDataHead());
         }
-
-        System.out.println(progress);
         this.message.getDataHead().setIndex(message.getDataHead().getIndex());
         if (message.getDataHead().getIndex() == this.message.getDataHead().getTotal()) {
             List<CFTPMessage> messages = ServerHandler.clientDataIds.get(serverHandler.clientKey);
@@ -256,9 +267,9 @@ public class RemoteHandler extends ChannelInboundHandlerAdapter {
      */
     public void progress(DataHead message) {
         this.message.getDataHead().setIndex(message.getIndex());
-        progress++;
-        log.setProgress(progress);
-        System.out.print("|");
+        progress += 0.5;
+        log.setProgress((int) progress);
+        // System.out.print("|");
         // 推送消息到发起人
         BaseController base = new BaseController();
         webSocketServer.sendInfo(base.getJson(log));

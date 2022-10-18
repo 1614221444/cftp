@@ -35,27 +35,33 @@ export default {
       for (let i in state.controllerList) {
         // 发送方
         if (state.controllerList[i].id === data.sendId) {
-          // 判断是否需要初始化
-          if (!state.sendList[state.controllerList[i].id]) {
-            state.sendList[state.controllerList[i].id] = []
-            state.sendList[state.controllerList[i].id][data.receiverId] = []
-            state.sendList[state.controllerList[i].id][data.receiverId].push(data)
-            return
-          } else if (!state.sendList[state.controllerList[i].id][data.receiverId]) {
-            state.sendList[state.controllerList[i].id][data.receiverId] = []
-            state.sendList[state.controllerList[i].id][data.receiverId].push(data)
-            return
-          }
-          // 判断是否覆盖进度
-          let is = true
-          for (let x in state.sendList[state.controllerList[i].id][data.receiverId]) {
-            if (state.sendList[state.controllerList[i].id][data.receiverId][x].id === data.id) {
-              state.sendList[state.controllerList[i].id][data.receiverId][x] = data
-              is = false
+          // 服务端
+          if (state.controllerList[i].serverType === '0') {
+            // 判断是否需要初始化
+            if (!state.sendList[state.controllerList[i].id]) {
+              state.sendList[state.controllerList[i].id] = []
+              state.sendList[state.controllerList[i].id][data.receiverId] = []
+              state.sendList[state.controllerList[i].id][data.receiverId].push(data)
+              return
+            } else if (!state.sendList[state.controllerList[i].id][data.receiverId]) {
+              state.sendList[state.controllerList[i].id][data.receiverId] = []
+              state.sendList[state.controllerList[i].id][data.receiverId].push(data)
+              return
             }
-          }
-          if(is) {
-            state.sendList[state.controllerList[i].id][data.receiverId].push(data)
+            // 判断是否覆盖进度
+            let is = true
+            for (let x in state.sendList[state.controllerList[i].id][data.receiverId]) {
+              if (state.sendList[state.controllerList[i].id][data.receiverId][x].id === data.id) {
+                state.sendList[state.controllerList[i].id][data.receiverId][x] = data
+                is = false
+              }
+            }
+            if (is) {
+              state.sendList[state.controllerList[i].id][data.receiverId].push(data)
+            }
+          } else {
+            // 客户端
+            state.sendList[state.controllerList[i].id] = data
           }
         }
       }
@@ -83,7 +89,7 @@ export default {
     delCisController ({ commit, rootState }, id) {
       return del(id)
     },
-    getAuthList({ commit, rootState }, controllerId) {
+    getAuthList ({ commit, rootState }, controllerId) {
       return getAuthList(controllerId)
     },
     startCisController ({ commit, rootState }, id) {
@@ -92,14 +98,14 @@ export default {
     stopCisController ({ commit, rootState }, id) {
       return stop(id)
     },
-    getServerUserList({ commit, rootState }, id) {
+    getServerUserList ({ commit, rootState }, id) {
       return getServerUserList(id)
     },
-    sendFile({ commit, rootState }, sendInfo) {
+    sendFile ({ commit, rootState }, sendInfo) {
       let data = { controllerId: sendInfo.server.id, userId: sendInfo.to, data: sendInfo.file }
       return send(data)
     },
-    setProgress({ commit, rootState }, data) {
+    setProgress ({ commit, rootState }, data) {
       commit('setProgress', data)
     }
   }

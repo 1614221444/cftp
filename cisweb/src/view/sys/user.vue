@@ -35,9 +35,9 @@
     <Page
       @on-change="changePage"
       @on-page-size-change="changeSizePage"
-      :page-size="$store.state.user.query.singlePage"
+      :page-size="$store.state.user.query.size"
       :total="$store.state.user.query.totalNumber"
-      :current="$store.state.user.query.pageNumber"
+      :current="$store.state.user.query.current"
       :page-size-opts="[20,40,60,80,100]"
       style="text-align: right;margin-top: 5px;"
       show-total show-sizer >
@@ -172,12 +172,12 @@ export default {
       this.isInfo = true
     },
     changePage (pageNumber) {
-      this.$store.state.user.query.pageNumber = pageNumber
+      this.$store.state.user.query.current = pageNumber
       this.query()
     },
     changeSizePage (pageSizeNumber) {
-      this.$store.state.user.query.pageNumber = 1
-      this.$store.state.user.query.singlePage = pageSizeNumber
+      this.$store.state.user.query.current = 1
+      this.$store.state.user.query.size = pageSizeNumber
       this.query()
     }
   }

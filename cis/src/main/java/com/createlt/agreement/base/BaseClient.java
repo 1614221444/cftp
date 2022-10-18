@@ -10,6 +10,8 @@ public interface BaseClient {
      */
     void start(String ip, int port,String clientId) throws Exception;
 
+
+
     /**
      * 关闭服务
      */
@@ -18,5 +20,5 @@ public interface BaseClient {
     /**
      * 发送消息
      */
-    void send(String data);
+    void send(String sendId, String data);
 }

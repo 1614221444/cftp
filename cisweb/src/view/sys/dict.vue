@@ -35,9 +35,9 @@
     <Page
       @on-change="changePage"
       @on-page-size-change="changeSizePage"
-      :page-size="$store.state.dict.query.singlePage"
+      :page-size="$store.state.dict.query.size"
       :total="$store.state.dict.query.totalNumber"
-      :current="$store.state.dict.query.pageNumber"
+      :current="$store.state.dict.query.current"
       :page-size-opts="[20,40,60,80,100]"
       style="text-align: right;margin-top: 5px;"
       show-total show-sizer >
@@ -168,12 +168,12 @@ export default {
       this.isInfo = true
     },
     changePage (pageNumber) {
-      this.$store.state.dict.query.pageNumber = pageNumber
+      this.$store.state.dict.query.current = pageNumber
       this.query()
     },
     changeSizePage (pageSizeNumber) {
-      this.$store.state.dict.query.pageNumber = 1
-      this.$store.state.dict.query.singlePage = pageSizeNumber
+      this.$store.state.dict.query.current = 1
+      this.$store.state.dict.query.size = pageSizeNumber
       this.query()
     }
   }

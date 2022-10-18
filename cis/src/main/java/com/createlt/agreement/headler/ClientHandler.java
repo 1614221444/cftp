@@ -42,7 +42,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
     //所有localChannel共享，减少线程上下文切换
     private Map<String, EventLoopGroup> localGroup = new HashMap<>();
     //每个外部请求channelId与其处理器handler的映射关系
-    public static ConcurrentHashMap<String, LocalHandler> localHandlerMap = new ConcurrentHashMap<>();
+    public ConcurrentHashMap<String, LocalHandler> localHandlerMap = new ConcurrentHashMap<>();
 
     private ChannelHandlerContext ctx = null;
 
@@ -65,6 +65,11 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
      */
     private ICisControllerService cisControllerService;
 
+    /**
+     * 控制器客户端实例
+     */
+    private CisController controller;
+
 
     /**
      * 当前客户端实例ID
@@ -75,7 +80,34 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
      * 连接状态主动推送人
      */
     String userId = "";
-    public ClientHandler(String clientId,String userId) {
+
+    /**
+     * 当前协议登录用户
+     */
+    String loginId = "";
+
+    public CisController getController() {
+        return controller;
+    }
+
+    public WebSocketServer getWebSocketServer() {
+        return webSocketServer;
+    }
+
+
+    public String getLoginId() {
+        return loginId;
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public ClientHandler(String clientId, String userId) {
         cisAuthenticationService = (ICisAuthenticationService) ToolSpring.getBean("cisAuthenticationServiceImpl");
         cisControllerService = (ICisControllerService) ToolSpring.getBean("cisControllerServiceImpl");
         webSocketServer = (WebSocketServer) ToolSpring.getBean("webSocketServer");
@@ -93,7 +125,8 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
         HashMap<String, Object> metaData = new HashMap<>();
         List<CisAuthentication> authList = cisAuthenticationService.list(new LambdaQueryWrapper<CisAuthentication>()
                 .eq(CisAuthentication::getControllerId, clientId));
-        metaData.put("clientKey", authList.get(0).getLoginName());
+        loginId = authList.get(0).getLoginName();
+        metaData.put("clientKey", loginId);
         //获取配置中指定的服务器端口
         ArrayList<Integer> serverPortArr = new ArrayList<>();
         serverPortArr.add(9124);
@@ -164,7 +197,7 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
             // 推送消息到发起人
             webSocketServer.sendInfo(base.responseSuccess("客户端连接成功"), userId);
             // 更新实例启动状态
-            CisController controller = cisControllerService.getById(clientId);
+            controller = cisControllerService.getById(clientId);
             controller.setIsStart(true);
             controller.setStartTime(new Date());
             cisControllerService.updateById(controller);
@@ -260,8 +293,10 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
             // 外部请求进入，开始与内网建立连接
             case DataHead.RECEIVE_END:
                 String key = message.getDataHead().getId();
+                localHandlerMap.get(message.getDataHead().getId()).progress(100);
+                localHandlerMap.remove(message.getDataHead().getId());
                 System.out.println("\n数据传输完成 通道已关闭 数据通道id：" + key);
-                //localHelperMap.get(key).close();
+                localHelperMap.get(key).close();
                 localHelperMap.remove(key);
                 break;
             // 补发数据确认

@@ -8,6 +8,14 @@ export const getList = (data) => {
   })
 }
 
+export const getListAll = (data) => {
+  return axios.request({
+    url: '/cis/controller/listAll',
+    data: data,
+    method: 'post'
+  })
+}
+
 export const getNoPageList = (data) => {
   return axios.request({
     url: '/cis/controller/noPageList',

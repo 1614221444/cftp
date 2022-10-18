@@ -47,7 +47,6 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     //workerGroup指的是所有端口所收到连接的处理线程
     private Map<String, EventLoopGroup> bossGroup = new HashMap<>();
     private Map<String, EventLoopGroup> workerGroup = new HashMap<>();
-    private Server remoteHelper = new Server();
 
     //客户端标识clientKey
     public String clientKey;
@@ -77,10 +76,16 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
     private WebSocketServer webSocketServer;
 
     /**
-     * 所有数据传输线程
+     * 所有数据传输处理器
      * @return
      */
     private Map<String, RemoteHandler> dataHandler = new HashMap<>();
+
+    /**
+     * 所有数据传输服务
+     * @return
+     */
+    private Map<String, Server> dataServer = new HashMap<>();
 
     public String getServerId() {
         return serverId;
@@ -362,7 +367,9 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
 
             }
         };
+        Server remoteHelper = new Server();
         remoteHelper.start(boss, worker, "localhost", port, channelInitializer);
+        dataServer.put(message.getDataHead().getId(), remoteHelper);
         bossGroup.put(message.getDataHead().getId(),boss);
         workerGroup.put(message.getDataHead().getId(),worker);
 
@@ -390,10 +397,13 @@ public class ServerHandler extends ChannelInboundHandlerAdapter {
         //取消正在监听的端口，否则第二次连接时无法再次绑定端口
         if (bossGroup.get(id) != null) {
             bossGroup.get(id).shutdownGracefully();
-            workerGroup.get(id).shutdownGracefully();
+            if(workerGroup.get(id) != null) {
+                workerGroup.get(id).shutdownGracefully();
+            }
             bossGroup.remove(id);
             workerGroup.remove(id);
             dataHandler.remove(id);
+            dataServer.get(id).close();
         }
     }
 

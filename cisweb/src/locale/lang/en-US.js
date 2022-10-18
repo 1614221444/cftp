@@ -155,7 +155,8 @@ export default {
       name: 'Join',
       controller: 'Controller',
       service: 'Service',
-      dao: 'Mapper'
+      dao: 'Mapper',
+      joinLog: 'Join Log'
     }
   },
   // dict
@@ -209,6 +210,14 @@ export default {
       user: 'User Name',
       certificate: 'Certificate',
       password: 'Password'
+    },
+    joinLog: {
+      fileId: 'File Id',
+      fileSize: 'File Size',
+      sendId: 'Send User',
+      receiverId: 'Receiver User',
+      progress: 'Progress',
+      sendDate: 'Send Date'
     }
   }
 }
