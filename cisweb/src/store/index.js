@@ -13,6 +13,7 @@ import job from './module/sys/job'
 import controller from './module/cis/controller'
 import authentication from './module/cis/authentication'
 import joinLog from './module/cis/joinLog'
+import model from './module/cis/model'
 Vue.use(Vuex)
 
 export default new Vuex.Store({
@@ -36,7 +37,8 @@ export default new Vuex.Store({
     job,
     controller,
     authentication,
-    joinLog
+    joinLog,
+    model
   },
   plugins: [
     createVuexAlong({

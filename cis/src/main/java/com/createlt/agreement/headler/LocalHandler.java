@@ -2,26 +2,30 @@ package com.createlt.agreement.headler;
 
 import com.createlt.agreement.codec.CFTPMessage;
 import com.createlt.agreement.codec.DataHead;
+import com.createlt.business.model.BaseModel;
+import com.createlt.cis.entity.CisController;
+import com.createlt.cis.entity.CisModel;
 import com.createlt.cis.entity.CisSendLog;
+import com.createlt.cis.service.ICisControllerService;
+import com.createlt.cis.service.ICisModelService;
 import com.createlt.cis.service.ICisSendLogService;
 import com.createlt.common.BaseController;
 import com.createlt.common.ToolSpring;
+import com.createlt.mapping.utils.RunJavaUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.HashMap;
 
 /**
- * @Description 实际内网服务器channel连接处理器
- * @Author zhangjun
- * @Data 2020/5/26
- * @Time 21:15
+ * 客户端数据处理器
  */
-
 public class LocalHandler extends ChannelInboundHandlerAdapter {
 
     private CFTPMessage message = null;
@@ -40,6 +44,14 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
      */
     private ICisSendLogService cisSendLogService;
 
+    private ICisControllerService cisControllerService;
+
+    private ICisModelService cisModelService;
+
+    /**
+     * 映射器实体
+     */
+    private CisModel model;
 
     private double progress;
     CisSendLog log = new CisSendLog();
@@ -66,6 +78,10 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
 
     public LocalHandler(ClientHandler client,CFTPMessage msg, boolean isSend, int i) {
         cisSendLogService = (ICisSendLogService) ToolSpring.getBean("cisSendLogServiceImpl");
+        cisControllerService = (ICisControllerService) ToolSpring.getBean("cisControllerServiceImpl");
+        CisController controller = cisControllerService.getById(client.clientId);
+        cisModelService = (ICisModelService) ToolSpring.getBean("cisModelServiceImpl");
+        this.model = cisModelService.getById(controller.getModelId());
         this.message = msg;
         this.isSend = isSend;
         File file = new File("/Users/wuyh/Desktop/DATA" + File.separator + this.message.getDataHead().getId());
@@ -205,10 +221,10 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
      *
      * @param message
      */
-    private void receive(DataHead message) throws IOException {
+    private void receive(DataHead message) throws IOException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         // 按位置插入数据
         MappedByteBuffer buffer = inChannel.map(FileChannel.MapMode.READ_WRITE,
-                message.getIndex() * readMax, message.getData().length);
+                (long) message.getIndex() * readMax, message.getData().length);
         buffer.put(message.getData());
 
         //计算进度
@@ -242,9 +258,52 @@ public class LocalHandler extends ChannelInboundHandlerAdapter {
                     + this.message.getDataHead().getId() + "\n文件大小：" + inChannel.size() / 1000000.00 + "M");
             localCtx.channel().close();
             client.dataPortClose(this.message.getDataHead().getId());
+            // 2、创建buffer
+            ByteBuffer byteBuffer = ByteBuffer.allocate(2048);
+            // 2、通过channel读文件到buffer中
+            int byteNum = inChannel.read(byteBuffer);
+            // -1 表示读取到最后一行了
+            while (byteNum!=-1){
+                // buffer中是否有内容
+                while (byteBuffer.hasRemaining()){
+                    // 读写切换（内部游标操作）
+                    byteBuffer.flip();
+                    byteBuffer.get();
+                }
+                // 清空缓冲区
+                byteBuffer.clear();
+                // 清空缓冲区后继续读文件
+                byteNum = inChannel.read(byteBuffer);
+            }
             if (inChannel != null) {
                 inChannel.close();
             }
+            RunJavaUtils javaUtils = new RunJavaUtils();
+            //获取动态classloader脚本
+            Class<BaseModel> iserviceClass = (Class<BaseModel>) javaUtils.getScript(this.model.getId());
+            //反射创建动态类
+            Object modelImpl = iserviceClass.newInstance();
+            // 记录解析开始
+            log.setProgress(1);
+            cisSendLogService.updateById(log);
+
+            Method method = iserviceClass.getMethod("push", String.class, byte[].class);
+            Object data = method.invoke(modelImpl, log.getId(), byteBuffer.array());
+            System.out.println(data);
+
+            // 记录解析结束
+            log.setProgress(2);
+            cisSendLogService.updateById(log);
+            // TODO 映射层代码
+            // modelImpl.push(log.getId(), byteBuffer.array());
+            /*BaseModel ss = BaseModelImpl.class.newInstance();
+            // 视图层入口
+            //实现了接口的业务类
+            BaseView viewImpl = new BaseViewImpl();
+            // 创建代理类对象
+            BaseView view = (BaseView) Proxy.newProxyInstance(viewImpl.getClass().getClassLoader(),
+                    viewImpl.getClass().getInterfaces(), new ViewProxy(viewImpl));
+            view.setData(log.getId(), data);*/
         }
     }
 

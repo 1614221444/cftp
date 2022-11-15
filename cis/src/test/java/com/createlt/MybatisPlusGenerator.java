@@ -88,7 +88,7 @@ public class MybatisPlusGenerator {
         String projectPath = System.getProperty("user.dir");
         String globalConfigOutputDir = projectPath + "/src/main/java";
         String globalConfigAuthor = "wuyh";
-        String packageConfigParent = "com.createlt.cis.sys";
+        String packageConfigParent = "com.createlt.cis";
 
         // https://www.mybatis-plus.com/guide/generator-new.html
         DataSourceConfig.Builder dataSourceConfigBuilder = new DataSourceConfig.Builder(dbUrl, dbUsername, dbPassword);

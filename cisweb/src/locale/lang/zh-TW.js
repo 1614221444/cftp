@@ -189,6 +189,11 @@ export default {
       join: {
         user: '用户名/密码',
         certificate: '证书/密码'
+      },
+      model: {
+        other: '其他',
+        json: 'JSON',
+        csv: 'CSV'
       }
     }
   },
@@ -218,6 +223,12 @@ export default {
       receiverId: '接收人',
       progress: '进度',
       sendDate: '发送时间'
+    },
+    model: {
+      name: '解析器名称',
+      type: '解析类型',
+      script: '脚本',
+      remakes: '备注'
     }
   }
 }

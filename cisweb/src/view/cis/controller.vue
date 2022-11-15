@@ -125,6 +125,13 @@
             </FormItem>
           </Col>
           <Col span="24">
+            <FormItem :label="$t('menu.cis.service')"  prop="modelId">
+              <Select v-model="$store.state.controller.info.modelId">
+                <Option v-for="item in modelList" :value="item.id" :key="item.id">{{ $t(item.name) }}</Option>
+              </Select>
+            </FormItem>
+          </Col>
+          <Col span="24">
             <FormItem :label="$t('cis.controller.authType')"  prop="authList">
               <Select v-model="$store.state.controller.info.authType" style="width: 100%">
                 <Option v-for="item in $dictList('JOIN_TYPE')" :value="item.dictValue" :key="item.id">{{ $t(item.title) }}</Option>
@@ -181,6 +188,9 @@
 import store from '@/store'
 export default {
   data () {
+    store.dispatch('getModelListAll').then((data) => {
+      this.modelList = data.data
+    })
     store.dispatch('getCisControllerList', this.$store.state.controller.query)
     return {
       contextLine: 0,
@@ -217,7 +227,8 @@ export default {
         to: '',
         label: false,
         file: '/Users/wuyh/work/中行金网/FTP/A/b.text'
-      }
+      },
+      modelList: []
     }
   },
   methods: {

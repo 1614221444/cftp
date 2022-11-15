@@ -188,6 +188,11 @@ export default {
       join: {
         user: 'User/Password',
         certificate: 'Certificate/Password'
+      },
+      model: {
+        other: 'Other',
+        json: 'JSON',
+        csv: 'CSV'
       }
     }
 
@@ -218,6 +223,12 @@ export default {
       receiverId: 'Receiver User',
       progress: 'Progress',
       sendDate: 'Send Date'
+    },
+    model: {
+      name: 'Model Name',
+      type: 'Model Type',
+      script: 'Script',
+      remakes: 'Remakes'
     }
   }
 }

@@ -12,8 +12,25 @@ import java.util.TimerTask;
  */
 public class Server {
 
+    /**
+     * 通道绑定
+     */
     ServerBootstrap serverBootstrap = new ServerBootstrap();
+
+    /**
+     * 通道实例
+     */
     Channel channel;
+
+
+    /**
+     * netty服务启动
+     * @param bossGroup 请求头部线程组
+     * @param workerGroup 请求消费线程组
+     * @param serverHost 监听IP
+     * @param serverPort 监听端口
+     * @param channelInitializer TCP通道规则
+     */
     public synchronized void start(EventLoopGroup bossGroup, EventLoopGroup workerGroup,
                                    String serverHost, int serverPort, ChannelInitializer channelInitializer) {
         try {
@@ -21,8 +38,6 @@ public class Server {
                     .channel(NioServerSocketChannel.class)
                     .childHandler(channelInitializer)
                     .childOption(ChannelOption.SO_KEEPALIVE, true);
-            //连接超时时间，连接公网服务器时可能会超时导致连接失败，最好不要设置
-            //.option(ChannelOption.CONNECT_TIMEOUT_MILLIS,10000);
             channel = serverBootstrap.bind(serverHost, serverPort).sync().channel();
             //Channel channel = serverBootstrap.bind(serverHost,serverPort).awaitUninterruptibly().channel();
             channel.closeFuture().addListener((ChannelFutureListener) future -> {

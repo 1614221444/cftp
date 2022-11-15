@@ -43,6 +43,11 @@ public class CisController extends BaseEntity implements Serializable {
     private String serverType;
 
     /**
+     * 解析器
+     */
+    private String modelId;
+
+    /**
      * 地址
      */
     private String ip;
